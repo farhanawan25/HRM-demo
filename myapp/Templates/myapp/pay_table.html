@@ -1,0 +1,986 @@
+{% comment %}
+This template displays employee payment details with edit functionality for the Rate field
+across all tabs (Earning, Deduction, and Fund) with tab-specific confirmation modals displayed inline within table areas
+{% endcomment %}
+<style>
+    .custom-table th {
+        background-color: #f6bc2a !important; /* Yellow header */
+        color: #000 !important;     /* Black text */
+        font-weight: bold;
+        font-size: 0.95rem;
+    }
+    
+    .custom-table td {
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+    
+    .custom-table-striped > tbody > tr:nth-of-type(odd) {
+        background-color: #f8f9fa;
+    }
+    
+    .custom-table-hover tbody tr:hover {
+        background-color: #e2e6ea;
+    }
+    
+    .custom-table-container {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        position: relative; /* Add for positioning inline modal */
+    }
+    
+    .default-row {
+        background-color: #e8f4ff !important;
+    }
+    
+    /* New styles for edit functionality */
+    .edit-icon {
+        cursor: pointer;
+        color: #0d6efd;
+    }
+    
+    .edit-icon:hover {
+        color: #0a58ca;
+    }
+    
+    .editable-cell {
+        position: relative;
+    }
+    
+    .rate-field {
+        background: transparent;
+        border: none;
+        width: 100%;
+        text-align: center;
+        outline: none;
+        padding: 0.375rem 0;
+    }
+    
+    .rate-field:disabled {
+        background: transparent;
+        appearance: none;
+    }
+    
+    .rate-field:enabled {
+        background-color: #fff;
+        border: 1px solid #0d6efd;
+        border-radius: 4px;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    /* Inline Modal Styles */
+    .inline-modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        border-radius: 8px;
+    }
+    
+    .inline-modal-overlay.show {
+        display: flex;
+        animation: fadeInModal 0.3s ease-out;
+    }
+    
+    @keyframes fadeInModal {
+        from {
+            opacity: 0;
+            background-color: rgba(255, 255, 255, 0);
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+        }
+        to {
+            opacity: 1;
+            background-color: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+    }
+    
+    @keyframes slideInModal {
+        from {
+            transform: translateY(-10px) scale(0.95);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+    }
+    
+    .inline-confirmation-modal {
+        background-color: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+        border: 2px solid #e9ecef;
+        animation: slideInModal 0.3s ease-out;
+    }
+    
+    .inline-modal-header {
+        margin-bottom: 15px;
+        padding-bottom: 12px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+    
+    .inline-modal-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+    
+    .inline-modal-subtitle {
+        font-size: 0.85rem;
+        color: #666;
+        margin: 5px 0 0 0;
+        font-weight: normal;
+    }
+    
+    .inline-modal-body {
+        margin-bottom: 20px;
+    }
+    
+    .inline-modal-body p {
+        font-size: 1rem;
+        color: #555;
+        margin: 0;
+        line-height: 1.5;
+    }
+    
+    .inline-value-display {
+        background-color: #f8f9fa;
+        padding: 6px 10px;
+        border-radius: 6px;
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: #0d6efd;
+        margin: 8px 0;
+        display: inline-block;
+        font-size: 0.9rem;
+    }
+    
+    .inline-modal-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+    }
+    
+    .inline-btn-confirm, .inline-btn-cancel {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 85px;
+    }
+    
+    .inline-btn-confirm {
+        background-color: #198754;
+        color: white;
+    }
+    
+    .inline-btn-cancel {
+        background-color: #6c757d;
+        color: white;
+    }
+    
+    .inline-btn-confirm:hover {
+        background-color: #157347;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(21, 115, 71, 0.3);
+    }
+    
+    .inline-btn-cancel:hover {
+        background-color: #5c636a;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(92, 99, 106, 0.3);
+    }
+    
+    .inline-btn-confirm:active, .inline-btn-cancel:active {
+        transform: translateY(0);
+    }
+    
+    /* Tab indicator styles */
+    .inline-tab-indicator {
+        display: inline-block;
+        padding: 3px 10px;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .inline-tab-indicator.earning {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .inline-tab-indicator.deduction {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .inline-tab-indicator.fund {
+        background-color: #d1ecf1;
+        color: #0c5460;
+    }
+    
+    /* Success message styles */
+    .success-message {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: #198754;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        display: none;
+        z-index: 1001;
+        animation: slideInSuccess 0.3s ease-out;
+    }
+    
+    .success-message.show {
+        display: block;
+    }
+    
+    @keyframes slideInSuccess {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
+
+<div class="table-responsive mt-3 custom-table-container">
+    <div class="employee-context" data-emp-no="{{ emp.emp_no }}" style="display: none;"></div>
+
+    <table class="table table-bordered custom-table custom-table-hover custom-table-striped align-middle text-center">
+        <thead>
+            <tr class="text-uppercase">
+                <th>ID</th>
+                <th>Description</th>
+                <th>Calculation Mode</th>
+                <th>Earn/Deduct Type</th>
+                <th>Rate</th>
+                <th>Amount</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in records %}
+                <tr {% if row.is_default_allw %}class="default-row"{% endif %} data-row-id="{{ row.id }}">
+                    <td>{{ row.id }}</td>
+                    <td>{{ row.description }}</td>
+                    <td>{{ row.calc_mode_display }}</td>
+                    <td>{{ row.earn_deduc_type_display }}</td>
+                    <td class="editable-cell">
+                        <input type="text" class="rate-field" value="{{ row.rate }}" disabled data-original-value="{{ row.rate }}">
+                    </td>
+                    <td>{{ row.amount }}</td>
+                    <td>
+                        <i class="fas fa-pencil-alt edit-icon"></i>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <!-- Inline Confirmation Modal -->
+    <div class="inline-modal-overlay">
+        <div class="inline-confirmation-modal">
+            <div class="inline-modal-header">
+                <h5 class="inline-modal-title">Confirm Rate Update</h5>
+                <div class="inline-modal-subtitle">
+                    <span class="inline-tab-indicator" id="inlineTabIndicator">General</span>
+                </div>
+            </div>
+            <div class="inline-modal-body">
+                <p>Are you sure you want to update the rate value?</p>
+                <div class="inline-value-display" id="inlineValueDisplay">New Value</div>
+            </div>
+            <div class="inline-modal-buttons">
+                <button class="inline-btn-confirm">
+                    <i class="fas fa-check"></i> Yes, Update
+                </button>
+                <button class="inline-btn-cancel">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Success Message -->
+    <div class="success-message">
+        <i class="fas fa-check-circle"></i> Rate updated successfully!
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the tab-specific logic
+    initTabHandlers();
+});
+
+// Track active editing state
+const editingState = {
+    currentRow: null,
+    currentField: null,
+    newValue: null,
+    activeTabPane: null,
+    originalValue: null,
+    tabType: null,
+    currentTableContainer: null
+};
+
+function initTabHandlers() {
+    // Set up handlers for all currently visible tab panes
+    setupEditHandlersForAllTabs();
+    
+    // Listen for tab changes
+    const tabButtons = document.querySelectorAll('[data-bs-toggle="tab"]');
+    tabButtons.forEach(button => {
+        button.addEventListener('shown.bs.tab', function(event) {
+            // Re-setup handlers when tabs change
+            setupEditHandlersForAllTabs();
+        });
+    });
+    
+    // Global ESC key handler
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            hideInlineModal();
+            cancelAnyActiveEditing();
+        }
+    });
+}
+
+function setupEditHandlersForAllTabs() {
+    // Find all tab panes that contain tables
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    
+    tabPanes.forEach(tabPane => {
+        setupEditHandlersForTab(tabPane);
+    });
+}
+
+function setupEditHandlersForTab(tabPane) {
+    // Find all edit icons in this tab pane
+    const editIcons = tabPane.querySelectorAll('.edit-icon');
+    
+    // Remove existing event listeners by cloning elements
+    editIcons.forEach(icon => {
+        const newIcon = icon.cloneNode(true);
+        icon.parentNode.replaceChild(newIcon, icon);
+    });
+    
+    // Add fresh click listeners to the new icons
+    tabPane.querySelectorAll('.edit-icon').forEach(icon => {
+        icon.addEventListener('click', function() {
+            enableEditForElement(this, tabPane);
+        });
+    });
+}
+
+function enableEditForElement(editIcon, tabPane) {
+    // First, cancel any active editing
+    cancelAnyActiveEditing();
+    
+    // Get the row and rate field
+    const row = editIcon.closest('tr');
+    const rateField = row.querySelector('.rate-field');
+    const tableContainer = editIcon.closest('.custom-table-container');
+    
+    if (!rateField || !tableContainer) return;
+    
+    // Detect the current tab type
+    const currentTabType = detectCurrentTabType(editIcon);
+    
+    // Store current editing state
+    editingState.currentRow = row;
+    editingState.currentField = rateField;
+    editingState.activeTabPane = tabPane;
+    editingState.originalValue = rateField.dataset.originalValue;
+    editingState.tabType = currentTabType;
+    editingState.currentTableContainer = tableContainer;
+    
+    console.log('Editing enabled for tab type:', currentTabType);
+    
+    // Enable editing
+    rateField.disabled = false;
+    rateField.focus();
+    rateField.select(); // Select all text for easy editing
+    
+    // Add event listeners
+    rateField.addEventListener('keydown', handleRateFieldKeyDown);
+    rateField.addEventListener('blur', handleRateFieldBlur);
+}
+
+function detectCurrentTabType(editIcon) {
+    // Method 1: Try to detect from the closest tab pane
+    const closestTabPane = editIcon.closest('.tab-pane');
+    if (closestTabPane) {
+        const paneId = closestTabPane.id.toLowerCase();
+        if (paneId.includes('earning')) return 'earning';
+        if (paneId.includes('deduction')) return 'deduction';
+        if (paneId.includes('fund')) return 'fund';
+    }
+    
+    // Method 2: Check which tab is currently active
+    const activeTabButton = document.querySelector('[data-bs-toggle="tab"].active, [data-bs-toggle="tab"][aria-selected="true"]');
+    if (activeTabButton) {
+        const href = activeTabButton.getAttribute('href') || activeTabButton.getAttribute('data-bs-target');
+        const text = activeTabButton.textContent.toLowerCase().trim();
+        
+        if (href) {
+            if (href.includes('earning')) return 'earning';
+            if (href.includes('deduction')) return 'deduction';
+            if (href.includes('fund')) return 'fund';
+        }
+        
+        if (text.includes('earning')) return 'earning';
+        if (text.includes('deduction')) return 'deduction';
+        if (text.includes('fund')) return 'fund';
+    }
+    
+    // Method 3: Check which tab pane is currently active/visible
+    const activeTabPane = document.querySelector('.tab-pane.active, .tab-pane.show');
+    if (activeTabPane) {
+        const paneId = activeTabPane.id.toLowerCase();
+        if (paneId.includes('earning')) return 'earning';
+        if (paneId.includes('deduction')) return 'deduction';
+        if (paneId.includes('fund')) return 'fund';
+    }
+    
+    return 'earning'; // Default fallback
+}
+
+function handleRateFieldKeyDown(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        
+        // Store the new value
+        editingState.newValue = event.target.value;
+        
+        // Show the inline modal
+        showInlineModal();
+        
+    } else if (event.key === 'Escape') {
+        cancelAnyActiveEditing();
+    }
+}
+
+function handleRateFieldBlur(event) {
+    // Small delay to allow clicking on confirmation buttons
+    setTimeout(() => {
+        // Check if focus is now on a modal button
+        const activeElement = document.activeElement;
+        const isModalButton = activeElement && (
+            activeElement.classList.contains('inline-btn-confirm') || 
+            activeElement.classList.contains('inline-btn-cancel')
+        );
+        
+        // If focus is not on a modal button and no modal is visible, cancel editing
+        if (!isModalButton && !isInlineModalVisible()) {
+            cancelAnyActiveEditing();
+        }
+    }, 150);
+}
+
+function showInlineModal() {
+    if (!editingState.newValue || !editingState.currentTableContainer) return;
+    
+    // Get the inline modal within the current table container
+    const inlineModalOverlay = editingState.currentTableContainer.querySelector('.inline-modal-overlay');
+    const inlineTabIndicator = editingState.currentTableContainer.querySelector('#inlineTabIndicator');
+    const inlineValueDisplay = editingState.currentTableContainer.querySelector('#inlineValueDisplay');
+    
+    if (!inlineModalOverlay) return;
+    
+    // Use the stored tab type
+    const tabType = editingState.tabType || 'earning';
+    
+    let displayTabType = 'General';
+    let tabClass = '';
+    
+    switch(tabType) {
+        case 'earning':
+            displayTabType = 'Earning';
+            tabClass = 'earning';
+            break;
+        case 'deduction':
+            displayTabType = 'Deduction';
+            tabClass = 'deduction';
+            break;
+        case 'fund':
+            displayTabType = 'Fund';
+            tabClass = 'fund';
+            break;
+        default:
+            displayTabType = 'General';
+            tabClass = '';
+    }
+    
+    console.log('Showing inline modal for tab type:', tabType, 'Display:', displayTabType);
+    
+    // Update modal content
+    if (inlineTabIndicator) {
+        inlineTabIndicator.textContent = displayTabType;
+        inlineTabIndicator.className = `inline-tab-indicator ${tabClass}`;
+    }
+    
+    // Show old and new values
+    if (inlineValueDisplay) {
+        const oldValue = editingState.originalValue;
+        const newValue = editingState.newValue;
+        inlineValueDisplay.innerHTML = `${oldValue} → ${newValue}`;
+    }
+    
+    // Set up button event listeners for this specific modal
+    const confirmBtn = inlineModalOverlay.querySelector('.inline-btn-confirm');
+    const cancelBtn = inlineModalOverlay.querySelector('.inline-btn-cancel');
+    
+    if (confirmBtn) {
+        // Remove existing listeners
+        const newConfirmBtn = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+        newConfirmBtn.addEventListener('click', handleInlineConfirmUpdate);
+    }
+    
+    if (cancelBtn) {
+        // Remove existing listeners
+        const newCancelBtn = cancelBtn.cloneNode(true);
+        cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+        newCancelBtn.addEventListener('click', handleInlineCancelUpdate);
+    }
+    
+    // Show modal with animation
+    inlineModalOverlay.classList.add('show');
+    
+    // Focus on confirm button
+    setTimeout(() => {
+        const focusBtn = inlineModalOverlay.querySelector('.inline-btn-confirm');
+        if (focusBtn) focusBtn.focus();
+    }, 100);
+    
+    // Click outside modal handler
+    inlineModalOverlay.addEventListener('click', function(event) {
+        if (event.target === inlineModalOverlay) {
+            handleInlineCancelUpdate();
+        }
+    });
+}
+
+function hideInlineModal() {
+    if (editingState.currentTableContainer) {
+        const inlineModalOverlay = editingState.currentTableContainer.querySelector('.inline-modal-overlay');
+        if (inlineModalOverlay) {
+            inlineModalOverlay.classList.remove('show');
+        }
+    }
+}
+
+function handleInlineConfirmUpdate() {
+    const tabType = editingState.tabType || 'unknown';
+    console.log(`Confirm update in tab: ${tabType}`);
+    
+    // Hide the modal
+    hideInlineModal();
+    
+    // Update if we have valid state
+    if (editingState.currentField && editingState.newValue !== null) {
+        const rowId = editingState.currentRow ? editingState.currentRow.dataset.rowId : 'unknown';
+        
+        console.log(`Updating row ${rowId} in tab ${tabType} from ${editingState.originalValue} to ${editingState.newValue}`);
+        
+        // Update the field value and dataset
+        editingState.currentField.value = editingState.newValue;
+        editingState.currentField.dataset.originalValue = editingState.newValue;
+        
+        // Disable the field
+        editingState.currentField.disabled = true;
+        
+        // Remove field event listeners
+        if (editingState.currentField) {
+            editingState.currentField.removeEventListener('keydown', handleRateFieldKeyDown);
+            editingState.currentField.removeEventListener('blur', handleRateFieldBlur);
+        }
+        
+        // Here you can add AJAX call to save the data to backend
+        saveRateUpdate(rowId, editingState.newValue, tabType);
+        
+        // Show success feedback
+        showInlineSuccessFeedback();
+    }
+    
+    // Reset editing state
+    resetEditingState();
+}
+
+function handleInlineCancelUpdate() {
+    const tabType = editingState.tabType || 'unknown';
+    console.log(`Cancel update in tab: ${tabType}`);
+    
+    // Hide the modal
+    hideInlineModal();
+    
+    // Reset the field if we have valid state
+    if (editingState.currentField) {
+        // Revert to original value
+        editingState.currentField.value = editingState.originalValue;
+        
+        // Disable the field
+        editingState.currentField.disabled = true;
+        
+        // Remove field event listeners
+        editingState.currentField.removeEventListener('keydown', handleRateFieldKeyDown);
+        editingState.currentField.removeEventListener('blur', handleRateFieldBlur);
+    }
+    
+    // Reset editing state
+    resetEditingState();
+}
+
+function cancelAnyActiveEditing() {
+    if (editingState.currentField) {
+        // Revert to original value
+        editingState.currentField.value = editingState.originalValue;
+        
+        // Disable editing
+        editingState.currentField.disabled = true;
+        
+        // Remove event listeners
+        editingState.currentField.removeEventListener('keydown', handleRateFieldKeyDown);
+        editingState.currentField.removeEventListener('blur', handleRateFieldBlur);
+    }
+    
+    // Hide modal
+    hideInlineModal();
+    
+    // Reset state
+    resetEditingState();
+}
+
+function isInlineModalVisible() {
+    if (editingState.currentTableContainer) {
+        const inlineModalOverlay = editingState.currentTableContainer.querySelector('.inline-modal-overlay');
+        return inlineModalOverlay && inlineModalOverlay.classList.contains('show');
+    }
+    return false;
+}
+
+function resetEditingState() {
+    editingState.currentRow = null;
+    editingState.currentField = null;
+    editingState.newValue = null;
+    editingState.activeTabPane = null;
+    editingState.originalValue = null;
+    editingState.tabType = null;
+    editingState.currentTableContainer = null;
+}
+
+function showInlineSuccessFeedback() {
+    if (editingState.currentTableContainer) {
+        const successMessage = editingState.currentTableContainer.querySelector('.success-message');
+        if (successMessage) {
+            successMessage.classList.add('show');
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 3000);
+        }
+    }
+}
+
+// Initialize on content changes for SPA frameworks
+document.addEventListener('htmx:afterSwap', function() {
+    initTabHandlers();
+});
+
+document.addEventListener('turbo:load', function() {
+    initTabHandlers();
+});
+function getCsrfToken() {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'csrftoken') {
+            return value;
+        }
+    }
+    // Fallback: try to get from meta tag
+    const csrfMeta = document.querySelector('meta[name=csrf-token]');
+    return csrfMeta ? csrfMeta.getAttribute('content') : '';
+}
+
+// Function to get current employee number
+function getCurrentEmployeeNumber() {
+    // Method 1: Try to get from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const empNoFromUrl = urlParams.get('emp_no');
+    if (empNoFromUrl) return empNoFromUrl;
+    
+    // Method 2: Try to get from URL path (if emp_no is in the path)
+    const pathParts = window.location.pathname.split('/');
+    const empNoFromPath = pathParts.find(part => part.startsWith('EMP') || /^\d+$/.test(part));
+    if (empNoFromPath) return empNoFromPath;
+    
+    // Method 3: Try to get from page context (if available in template)
+    const empContext = document.querySelector('[data-emp-no]');
+    if (empContext) return empContext.getAttribute('data-emp-no');
+    
+    // Method 4: Try to get from a form field or hidden input
+    const empInput = document.querySelector('input[name="emp_no"], #emp_no');
+    if (empInput) return empInput.value;
+    
+    // Method 5: Try to get from employee dropdown
+    const empDropdown = document.querySelector('select[name="employee"], #employee_select');
+    if (empDropdown) return empDropdown.value;
+    
+    console.warn('Could not determine current employee number');
+    return null;
+}
+
+// Enhanced function to save rate update to backend
+function saveRateUpdate(rowId, newRate, tabType) {
+    const empNo = getCurrentEmployeeNumber();
+    
+    if (!empNo) {
+        console.error('Cannot save rate update: Employee number not found');
+        showErrorMessage('Unable to determine employee number. Please refresh the page.');
+        return;
+    }
+    
+    console.log(`Saving rate update - Employee: ${empNo}, Row: ${rowId}, Rate: ${newRate}, Tab: ${tabType}`);
+    
+    // Show loading state
+    showLoadingMessage('Updating rate...');
+    
+    fetch('/update-employee-pay-rate/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify({
+            row_id: rowId,
+            emp_no: empNo,
+            new_rate: newRate,
+            tab_type: tabType
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        hideLoadingMessage();
+        
+        if (data.success) {
+            console.log('Rate updated successfully:', data);
+            showInlineSuccessFeedback(`Rate updated from ${data.data.old_rate} to ${data.data.new_rate}`);
+            
+            // Optionally refresh the summary totals
+            refreshEmployeeSummary(empNo);
+            
+        } else {
+            console.error('Server returned error:', data.error);
+            showErrorMessage(data.error || 'Failed to update rate');
+            // Revert the UI changes
+            revertFieldValue();
+        }
+    })
+    .catch(error => {
+        hideLoadingMessage();
+        console.error('Error updating rate:', error);
+        showErrorMessage('Network error occurred. Please try again.');
+        // Revert the UI changes
+        revertFieldValue();
+    });
+}
+
+// Function to refresh employee summary totals
+function refreshEmployeeSummary(empNo) {
+    fetch(`/employee-pay-summary/${empNo}/`)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateSummaryDisplay(data.data);
+        }
+    })
+    .catch(error => {
+        console.log('Could not refresh summary:', error);
+    });
+}
+
+// Function to update summary display (implement based on your UI)
+function updateSummaryDisplay(summaryData) {
+    // Update gross pay display
+    const grossPayElement = document.querySelector('[data-summary="gross_pay"], .gross-pay-value');
+    if (grossPayElement) {
+        grossPayElement.textContent = summaryData.gross_pay.toFixed(2);
+    }
+    
+    // Update deduction display
+    const deductionElement = document.querySelector('[data-summary="deduction"], .deduction-value');
+    if (deductionElement) {
+        deductionElement.textContent = summaryData.deduction.toFixed(2);
+    }
+    
+    // Update net salary display
+    const netSalaryElement = document.querySelector('[data-summary="net_salary"], .net-salary-value');
+    if (netSalaryElement) {
+        netSalaryElement.textContent = summaryData.net_salary.toFixed(2);
+    }
+    
+    // Update total fund display
+    const totalFundElement = document.querySelector('[data-summary="total_fund"], .total-fund-value');
+    if (totalFundElement) {
+        totalFundElement.textContent = summaryData.total_fund.toFixed(2);
+    }
+}
+
+// Function to revert field value on error
+function revertFieldValue() {
+    if (editingState.currentField && editingState.originalValue !== null) {
+        editingState.currentField.value = editingState.originalValue;
+    }
+}
+
+// Function to show error message
+function showErrorMessage(message) {
+    // Create or update error message element
+    let errorElement = document.querySelector('.error-message');
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.className = 'error-message';
+        errorElement.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #dc3545;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideInError 0.3s ease-out;
+        `;
+        document.body.appendChild(errorElement);
+    }
+    
+    errorElement.textContent = message;
+    errorElement.style.display = 'block';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
+    }, 5000);
+}
+
+// Function to show loading message
+function showLoadingMessage(message) {
+    let loadingElement = document.querySelector('.loading-message');
+    if (!loadingElement) {
+        loadingElement = document.createElement('div');
+        loadingElement.className = 'loading-message';
+        loadingElement.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slideInLoading 0.3s ease-out;
+        `;
+        document.body.appendChild(loadingElement);
+    }
+    
+    loadingElement.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i> ${message}
+    `;
+    loadingElement.style.display = 'block';
+}
+
+// Function to hide loading message
+function hideLoadingMessage() {
+    const loadingElement = document.querySelector('.loading-message');
+    if (loadingElement) {
+        loadingElement.style.display = 'none';
+    }
+}
+
+// Enhanced success feedback function
+function showInlineSuccessFeedback(customMessage = null) {
+    if (editingState.currentTableContainer) {
+        const successMessage = editingState.currentTableContainer.querySelector('.success-message');
+        if (successMessage) {
+            if (customMessage) {
+                successMessage.innerHTML = `<i class="fas fa-check-circle"></i> ${customMessage}`;
+            }
+            successMessage.classList.add('show');
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 4000);
+        }
+    }
+}
+
+// Add CSS for animations
+const animationStyles = document.createElement('style');
+animationStyles.textContent = `
+    @keyframes slideInError {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes slideInLoading {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+`;
+document.head.appendChild(animationStyles);
+</script>

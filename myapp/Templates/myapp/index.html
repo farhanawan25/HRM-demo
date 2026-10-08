@@ -1,0 +1,661 @@
+<!-- Alert Message after the user login into the main dashboard -->
+{% if messages %}
+<div class="container mt-3 position-fixed w-50" style="z-index: 9999; top: 40px; left: 65%; transform: translateX(-34%); width: 20%;">
+  {% for message in messages %}
+    <div class="alert alert-{{ message.tags }} alert-dismissible fade show text-center" role="alert">
+      {{ message }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+{% load static %}
+<!doctype html>
+<html lang="en">
+
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1">
+ <title>Payroll Homepage</title>
+ <link rel="shortcut icon" type="image/png" href="{% static 'images/wssp_logo.jpg' %}" />
+ <link rel="stylesheet" href="{% static 'assets/css/styles.min.css' %}" />
+ <link rel="stylesheet" href="{% static 'assets/css/custom_sidebar.css' %}" />
+ <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+ 
+ <style>
+   /* Subtle Sidebar Enhancements */
+   .sidebar-nav .first-level > .sidebar-item > .sidebar-link,
+   .sidebar-nav .first-level > .sidebar-item > .has-arrow {
+     padding-left: 30px;
+   }
+   
+   .sidebar-nav .second-level > .sidebar-item > .sidebar-link {
+     padding-left: 45px;
+     font-size: 13px;
+   }
+   
+   /* Simple numbering */
+   .sidebar-nav .first-level {
+     counter-reset: section;
+   }
+   
+   .sidebar-nav .first-level > .sidebar-item {
+     counter-increment: section;
+   }
+   
+   .sidebar-nav .first-level > .sidebar-item > .sidebar-link::before,
+   .sidebar-nav .first-level > .sidebar-item > .has-arrow::before {
+     content: counter(section) ". ";
+     font-weight: 500;
+     color: #666;
+   }
+   
+   /* Second level numbering */
+   .sidebar-nav .second-level {
+     counter-reset: subsection;
+   }
+   
+   .sidebar-nav .second-level > .sidebar-item {
+     counter-increment: subsection;
+   }
+   
+   .sidebar-nav .second-level > .sidebar-item > .sidebar-link::before {
+     content: counter(section) "." counter(subsection) " ";
+     font-size: 11px;
+     font-weight: 500;
+     color: #888;
+   }
+   
+   /* Small visual separator */
+   .sidebar-nav .first-level {
+     border-left: 2px solid #f0f0f0;
+     margin-left: 10px;
+   }
+   
+   .sidebar-nav .second-level {
+     border-left: 2px solid #f5f5f5;
+     margin-left: 15px;
+   }
+ </style>
+</head>
+
+<body>
+ <body>
+ <style>
+   
+   .left-sidebar,
+   .left-sidebar[style] {
+     width: 290px !important;
+   }
+
+   .main-wrapper[data-sidebartype='full'] .page-wrapper {
+     margin-left: 290px !important;
+   }
+
+   .left-sidebar .sidebar-item .sidebar-link {
+     padding-left: 20px !important;
+   }
+ </style>
+
+ <!-- rest of your template -->
+
+ <!-- Body Wrapper -->
+ <div class="page-wrapper" id="main-wrapper" data-layout="vertical" data-navbarbg="skin6" data-sidebartype="full"
+   data-sidebar-position="fixed" data-header-position="fixed">
+ 
+   <!-- Sidebar Start -->
+   <aside class="left-sidebar">
+     <!-- Sidebar scroll-->
+     <div>
+       <div class="brand-logo d-flex align-items-center justify-content-between">
+         <!-- Image in Sidebar -->
+         <div class="sidebar-image">
+           <img src="{% static 'images/wssp_logo.jpg' %}" alt="Wssp Payroll" class="sidebar-img">
+           <span class="sidebar-text">WSSP HRMS</span>
+         </div>           
+
+         <!-- Close button (for smaller screens) -->
+         <div class="close-btn d-xl-none d-block sidebartoggler cursor-pointer" id="sidebarCollapse">
+           <i class="ti ti-x fs-8"></i>
+         </div>
+       </div>
+
+<!-- Sidebar navigation-->
+<nav class="sidebar-nav scroll-sidebar" data-simplebar="">
+ <ul id="sidebarnav">
+
+<!-- Dashboard (Static) -->
+<li class="sidebar-item">
+ <a class="sidebar-link" href="{% url 'dashboard' %}" aria-expanded="false">
+   <span>
+     <iconify-icon icon="solar:home-smile-bold-duotone" class="fs-6"></iconify-icon>
+   </span>
+   <span class="hide-menu">Homepage</span>
+ </a>
+</li>
+
+<li class="sidebar-item">
+ <a class="sidebar-link" href="{% url 'system_access_control' %}" aria-expanded="false">
+   <span><i class="bi bi-lock-fill" style="color: grey;"></i></span>
+   <span class="hide-menu">System Access Control</span>
+ </a>
+</li>
+<!-- Main Toggler Tab: Employee Profile -->
+<li class="sidebar-item">
+  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+    <span>
+      <iconify-icon icon="mdi:account-group-outline" class="fs-6"></iconify-icon>
+    </span>
+    <span class="hide-menu">Employee Profile</span>
+  </a>
+
+  <!-- First-Level Collapse -->
+  <ul aria-expanded="false" class="collapse first-level">
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee" aria-expanded="false">
+        <span class="hide-menu">Employee</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee-grouping" aria-expanded="false">
+        <span class="hide-menu">Employee Grouping</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee-type" aria-expanded="false">
+        <span class="hide-menu">Employee Type</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee-grade" aria-expanded="false">
+        <span class="hide-menu">Employee Grade</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee-job" aria-expanded="false">
+        <span class="hide-menu">Employee Job</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee-department" aria-expanded="false">
+        <span class="hide-menu">Employee Deptt.</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee-contract-expiry" aria-expanded="false">
+        <span class="hide-menu">Emp. Contract Expiry</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee-transfer" aria-expanded="false">
+        <span class="hide-menu">Employee Transfer</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/employee-transfer-report" aria-expanded="false">
+        <span class="hide-menu">Employee Transfer Report</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/contract-expiry" aria-expanded="false">
+        <span class="hide-menu">Contract Expiry</span>
+      </a>
+    </li>
+  </ul>
+</li>
+
+
+
+<!-- Main Toggler Tab 1: Rates of Pay And Allowances -->
+<li class="sidebar-item">
+ <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+   <span>
+    <iconify-icon icon="mdi:wallet" class="fs-6"></iconify-icon>
+   </span>
+   <span class="hide-menu">Rates Of Pay And Allw</span>
+ </a>
+
+ <!-- First-Level Collapse -->
+ <ul aria-expanded="false" class="collapse first-level">
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'employee_pay_search' %}" aria-expanded="false">
+       <span class="hide-menu">Employee Pay</span>
+     </a>
+   </li>
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'pay_allowances' %}" aria-expanded="false">
+       <span class="hide-menu">Pay Allowances</span>
+     </a>
+   </li>
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'allowance_prevailing_rate' %}" aria-expanded="false">
+       <span class="hide-menu">Allowances Prevailing Rate</span>
+     </a>
+   </li>
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'pay_classification' %}" aria-expanded="false">
+       <span class="hide-menu">Pay Classification</span>
+     </a>
+   </li>
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'salary-type' %}" aria-expanded="false">
+       <span class="hide-menu">Pay Type - HR</span>
+     </a>
+   </li>
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'pay_type_fin_view' %}" aria-expanded="false">
+       <span class="hide-menu">Pay Type - FIN</span>
+     </a>
+   </li>
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'tax_slab' %}" aria-expanded="false">
+       <span class="hide-menu">Tax slab</span>
+     </a>
+   </li>
+ </ul>
+</li>
+
+
+<!-- Main Toggler Tab 2: Payroll -->
+<li class="sidebar-item">
+ <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+   <span>
+     <iconify-icon icon="solar:layers-minimalistic-bold-duotone" class="fs-6"></iconify-icon>
+   </span>
+   <span class="hide-menu">Payroll</span>
+ </a>
+
+ <!-- First-Level Collapse -->
+ <ul aria-expanded="false" class="collapse first-level">
+   
+   <!-- 1. Payroll Period (HR) - Standalone First Item -->
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'sal_period_list' %}" aria-expanded="false">
+       <span class="hide-menu">Define Salary Period (HR)</span>
+     </a>
+   </li>
+
+   <!-- 2. Employee Attendance - Second Phase -->
+   <li class="sidebar-item">
+     <a class="has-arrow sidebar-link" href="javascript:void(0)" aria-expanded="false">Employee Attendance</a>
+     <ul aria-expanded="false" class="collapse second-level">
+
+               <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'attendance_marking' %}" aria-expanded="false">
+           <span class="hide-menu">Attend. Marking</span>
+         </a>
+       </li>
+
+               <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'attendance_submission'%}" aria-expanded="false">
+           <span class="hide-menu">Attend. Submission</span>
+         </a>
+       </li>
+
+               <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'attendance_approval_summary'%}" aria-expanded="false">
+           <span class="hide-menu">Attend. Approval ZM's</span>
+         </a>
+       </li>
+
+       <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'attendance_acceptance' %}" aria-expanded="false">
+           <span class="hide-menu">Attend. Acceptance</span>
+         </a>
+       </li>
+
+       <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'attendance_report' %}" aria-expanded="false">
+           <span class="hide-menu">Attend. Report</span>
+         </a>
+       </li>
+     </ul>
+   </li>
+
+   <!-- 3. Payroll Processing - Third Phase -->
+   <li class="sidebar-item">
+     <a class="has-arrow sidebar-link" href="javascript:void(0)" aria-expanded="false">Payroll Processing</a>
+     <ul aria-expanded="false" class="collapse second-level">
+
+       <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'payroll_initialize' %}" aria-expanded="false">
+           <span class="hide-menu">Payroll Calculate Pay - HO</span>
+         </a>
+       </li>
+
+       <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'payroll_amendment' %}" aria-expanded="false">
+           <span class="hide-menu">Payroll Amendment</span>
+         </a>
+       </li>
+
+       <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'payroll_tracking' %}" aria-expanded="false">
+           <span class="hide-menu">Payroll Tracking</span>
+         </a>
+       </li>
+
+       <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'payroll_recommendation_hr' %}" aria-expanded="false">
+           <span class="hide-menu">Payroll Recomd. - HR</span>
+         </a>
+       </li>
+
+       <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'payroll_recommendation_finance' %}" aria-expanded="false">
+           <span class="hide-menu">Payroll Recomd. - FIN</span>
+         </a>
+       </li>
+
+       <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'payroll_recommendation_ceo' %}" aria-expanded="false">
+           <span class="hide-menu">Payroll APPROVAL - CEO</span>
+         </a>
+       </li>
+
+               <li class="sidebar-item">
+         <a class="sidebar-link" href="{% url 'payroll_run' %}" aria-expanded="false">
+           <span class="hide-menu">Payroll Close</span>
+         </a>
+       </li>
+
+     </ul>
+   </li>
+
+ </ul>
+</li>
+
+<!-- Main Toggler Tab 4: Reports -->
+<li class="sidebar-item">
+ <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+   <span>
+    <i class="bi bi-clipboard-data-fill fs-6 text-dark"></i>
+   </span>
+   <span class="hide-menu">Reports</span>
+ </a>
+ <ul aria-expanded="false" class="collapse first-level">
+   <li class="sidebar-item">
+     <a class="sidebar-link" href="{% url 'payroll_reports'%}" aria-expanded="false">
+       <span class="hide-menu">Payroll Reports</span>
+     </a>
+   </li>
+
+   <li class="sidebar-item">
+    <a class="sidebar-link" href="/reports/HR" aria-expanded="false">
+      <span class="hide-menu">HR Reports</span>
+    </a>
+  </li>
+
+   <li class="sidebar-item">
+    <a class="sidebar-link" href="{% url 'finance_reports'%}" aria-expanded="false">
+      <span class="hide-menu">Finance Reports</span>
+    </a>
+  </li>
+
+ </ul>
+</li>
+
+
+<!-- Main Toggler : Loan Module -->
+<li class="sidebar-item">
+  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+    <span>
+      <i class="bi bi-credit-card-2-front-fill fs-6 text-dark"></i>
+    </span>
+    <span class="hide-menu">Loan Module</span>
+  </a>
+  <ul aria-expanded="false" class="collapse first-level">
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="{% url 'loan_allotment' %}" aria-expanded="false">
+        <span class="hide-menu">Loan Allotment</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="{% url 'employee_search' %}" aria-expanded="false">
+        <span class="hide-menu">Employee With Loan</span>
+      </a>
+    </li>
+  </ul>
+ </li>
+ 
+<!-- Main Toggler Tab: Overtime -->
+<li class="sidebar-item">
+  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+    <span>
+      <i class="bi bi-clock-fill"></i>
+    </span>
+    <span class="hide-menu">Overtime</span>
+  </a>
+
+  <!-- First-Level Collapse -->
+  <ul aria-expanded="false" class="collapse first-level">
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/holidays" aria-expanded="false">
+        <span class="hide-menu">Holidays</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/permissible-staff" aria-expanded="false">
+        <span class="hide-menu">Permissible Staff</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/attendance" aria-expanded="false">
+        <span class="hide-menu">Overtime Attendance</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/attendance-report" aria-expanded="false">
+        <span class="hide-menu">Attendance Report</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/am-hr-approval" aria-expanded="false">
+        <span class="hide-menu">AM HR Approval</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/zm-approval" aria-expanded="false">
+        <span class="hide-menu">ZM Approval</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/hr-approval" aria-expanded="false">
+        <span class="hide-menu">HR Approval</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/cfo-approval" aria-expanded="false">
+        <span class="hide-menu">CFO Approval</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/period" aria-expanded="false">
+        <span class="hide-menu">Overtime Period</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/payment" aria-expanded="false">
+        <span class="hide-menu">Overtime Payment</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/overtime/reports" aria-expanded="false">
+        <span class="hide-menu">Overtime Reports</span>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- Main Toggler Tab: Legal Cases -->
+<li class="sidebar-item">
+  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+    <span>
+      <i class="bi bi-file-earmark-text-fill fs-6"></i>
+    </span>
+    <span class="hide-menu">Legal Cases</span>
+  </a>
+
+  <!-- First-Level Collapse -->
+  <ul aria-expanded="false" class="collapse first-level">
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/legal/new-case" aria-expanded="false">
+        <span class="hide-menu">New Case</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/legal/new-proceedings" aria-expanded="false">
+        <span class="hide-menu">New Proceedings</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/legal/case-record" aria-expanded="false">
+        <span class="hide-menu">Case Record</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/legal/case-history" aria-expanded="false">
+        <span class="hide-menu">Case History</span>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- Main Toggler Tab: Employee Training -->
+<li class="sidebar-item">
+  <a class="sidebar-link has-arrow" href="javascript:void(0)" aria-expanded="false">
+    <span>
+      <i class="bi bi-mortarboard-fill fs-6 text-dark"></i>
+    </span>
+    <span class="hide-menu">Employee Training</span>
+  </a>
+
+  <!-- First-Level Collapse -->
+  <ul aria-expanded="false" class="collapse first-level">
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/training/institute" aria-expanded="false">
+        <span class="hide-menu">Training Institute</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/training/sponsoring-agency" aria-expanded="false">
+        <span class="hide-menu">Sponsoring Department/Agency</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/training/definition" aria-expanded="false">
+        <span class="hide-menu">Training Definition</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/training/nomination" aria-expanded="false">
+        <span class="hide-menu">Employee Nomination</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/training/feedback" aria-expanded="false">
+        <span class="hide-menu">Training Feedback</span>
+      </a>
+    </li>
+    <li class="sidebar-item">
+      <a class="sidebar-link" href="/training/customize-report" aria-expanded="false">
+        <span class="hide-menu">Customize Report</span>
+      </a>
+    </li>
+  </ul>
+</li>
+
+<!-- AUTH (Static) -->
+
+<li class="sidebar-item">
+ <a class="sidebar-link" href="./authentication-register.html" aria-expanded="false">
+   <span>
+     <iconify-icon icon="solar:user-plus-rounded-bold-duotone" class="fs-6"></iconify-icon>
+   </span>
+   <span class="hide-menu">Register</span>
+ </a>
+</li>
+
+ </ul>
+   </nav>
+      </div>
+           </aside>
+   <!--  Sidebar End -->
+
+   <div class="body-wrapper">
+     <!-- Header Start -->
+     <header class="app-header">
+       <nav class="navbar navbar-expand-lg navbar-light">
+         <ul class="navbar-nav align-items-center">
+           <!-- Sidebar Toggler -->
+           <li class="nav-item d-block d-xl-none me-2">
+             <a class="nav-link sidebartoggler nav-icon-hover" id="headerCollapse" href="javascript:void(0)">
+               <i class="ti ti-menu-2"></i>
+             </a>
+           </li>
+
+<li class="nav-item d-flex align-items-center justify-content-center w-100">
+ <a class="navbar-brand d-flex align-items-center justify-content-center w-100 text-center" href="javascript:void(0)">
+ <span class="fw-semibold small text-dark ms-2">Govt. Of Khyber Pakhtunkhwa</span>
+
+ </a>
+</li>
+
+     </ul>
+
+         <!-- Right Side (Profile Only) -->
+         <div class="navbar-collapse justify-content-end px-0" id="navbarNav">
+           <ul class="navbar-nav flex-row ms-auto align-items-center justify-content-end">
+             <!-- Profile Dropdown -->
+             <li class="nav-item dropdown">
+               <a class="nav-link nav-icon-hover" href="javascript:void(0)" id="drop2" data-bs-toggle="dropdown"
+                 aria-expanded="false">
+                 <img src="{% static 'assets/images/profile/user-3.jpg' %}" alt="user" width="35" height="35" class="rounded-circle">
+               </a>
+               <div class="dropdown-menu dropdown-menu-end dropdown-menu-animate-up" aria-labelledby="drop2">
+                 <div class="message-body">
+                   <a href="javascript:void(0)" class="d-flex align-items-center gap-2 dropdown-item">
+                     <i class="ti ti-user fs-6"></i>
+                     <p class="mb-0 fs-3">My Profile</p>
+                   </a>
+                   <a href="javascript:void(0)" class="d-flex align-items-center gap-2 dropdown-item">
+                     <i class="ti ti-list-check fs-6"></i>
+                     <p class="mb-0 fs-3">My Task</p>
+                   </a>
+                   <a href="{% url 'logout' %}" class="btn btn-outline-primary mx-3 mt-2 d-block">Logout</a>
+                 </div>
+               </div>
+             </li>
+           </ul>
+         </div>
+       </nav>
+     </header>
+     <!-- Header End -->
+
+     <!-- This line of code is for extend feature in the main template where we entend our index with a template -->
+     <div class="container-fluid">
+       {% block content %}
+       <!-- Default content from extended template -->
+       <div class="text-center">
+         
+       </div>
+       {% endblock %}
+     </div>
+
+<script src="{% static 'assets/libs/jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'assets/libs/bootstrap/dist/js/bootstrap.bundle.min.js' %}"></script>
+<script src="{% static 'assets/libs/apexcharts/dist/apexcharts.min.js' %}"></script>
+<script src="{% static 'assets/libs/simplebar/dist/simplebar.js' %}"></script>
+<script src="{% static 'assets/js/sidebarmenu.js' %}"></script>
+<script src="{% static 'assets/js/app.min.js' %}"></script>
+<script src="{% static 'assets/js/dashboard.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@1.0.8/dist/iconify-icon.min.js"></script>
+
+<script>
+ // Simple sidebar functionality - no changes to original behavior
+</script>
+
+</body>
+
+</html>

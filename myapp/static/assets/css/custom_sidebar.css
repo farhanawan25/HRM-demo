@@ -1,0 +1,35 @@
+/* Sidebar Container */
+.sidebar-container {
+    position: fixed;  /* Keeps the sidebar fixed on the left */
+    top: 0;           /* Align it to the top of the page */
+    left: 0;          /* Align it to the left side */
+    width: 250px;     /* Adjust width based on your preference */
+    height: 100vh;    /* Full height of the viewport */
+    background-color: #f8f9fa;  /* Sidebar background */
+    z-index: 100;     /* Ensure sidebar is below header */
+    padding-top: 50px; /* Adjust padding to avoid overlap with header */
+}
+
+/* Sidebar Image Style */
+.sidebar-img {
+    width: 70%;              /* Make the image responsive */
+    max-width: 70px;         /* Set a maximum width for the image */
+    height: auto;            /* Maintain aspect ratio */
+    object-fit: contain;     /* Prevent image distortion */
+    margin-right: 10px;      /* Add a small gap between the image and text */
+}
+
+/* Sidebar Image Container */
+.sidebar-image {
+    display: flex;           /* Enable Flexbox */
+    align-items: center;     /* Center the image vertically */
+    padding: 10px;           /* Optional: Add some padding around the image */
+    overflow: hidden;        /* Prevent overflow if the image exceeds boundaries */
+}
+
+/* Sidebar Text */
+.sidebar-text {
+    font-size: 16px;         /* Adjust the text size */
+    color: #333;             /* Text color */
+    font-weight: bold;       /* Make the text bold */
+}

@@ -1,0 +1,1137 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+<div class="container-fluid px-4 py-4">
+
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12 d-flex align-items-center">
+            <div class="me-3">
+                <i class="fas fa-chart-bar text-primary fs-4"></i>
+            </div>
+            <div>
+                <h3 class="mb-1 text-primary">Attendance Approval Summary</h3>
+                <small class="text-muted">Monitor attendance across periods and zones</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Form -->
+    <div class="card mb-4 border-0 shadow-sm animated-card">
+        <div class="card-header bg-primary text-white py-2">
+            <strong><i class="fas fa-search me-2"></i>Filters</strong>
+        </div>
+        <div class="card-body bg-light">
+            <form method="get">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small">Select Period</label>
+                        <select class="form-select form-select-sm animated-input" name="period" required>
+                            <option value="">-- Choose Period --</option>
+                            {% for period in periods %}
+                                <option value="{{ period.id }}" {% if selected_period == period.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ period.label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Select Zone Manager</label>
+                        <select class="form-select form-select-sm animated-input" name="zm_id" required>
+                            <option value="">-- Choose Zone Manager --</option>
+                            {% for zm in zm_list %}
+                                <option value="{{ zm.id }}" {% if selected_zm == zm.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ zm.name }} ({{ zm.desc }}) - {{ zm.zone }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-sm btn-primary w-100 animated-button">
+                            <i class="fas fa-search me-1"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if summary_data %}
+        {% if period_details %}
+        <!-- Period Detail Cards -->
+        <div class="row mb-3">
+            <div class="col-md-2 col-6 mb-2">
+                <div class="bg-primary-subtle p-2 text-center rounded text-primary shadow-sm stat-card">
+                    <small class="text-muted">Month</small><br>
+                    <strong>{{ period_details.month }}</strong>
+                </div>
+            </div>
+            <div class="col-md-2 col-6 mb-2">
+                <div class="bg-primary-subtle p-2 text-center rounded text-primary shadow-sm stat-card">
+                    <small class="text-muted">From</small><br>
+                    <strong>{{ period_details.from }}</strong>
+                </div>
+            </div>
+            <div class="col-md-2 col-6 mb-2">
+                <div class="bg-primary-subtle p-2 text-center rounded text-primary shadow-sm stat-card">
+                    <small class="text-muted">To</small><br>
+                    <strong>{{ period_details.to }}</strong>
+                </div>
+            </div>
+            <div class="col-md-2 col-6 mb-2">
+                <div class="bg-primary-subtle p-2 text-center rounded text-primary shadow-sm stat-card">
+                    <small class="text-muted">Days</small><br>
+                    <strong>{{ period_details.days }}</strong>
+                </div>
+            </div>
+            <div class="col-md-4 mb-2">
+                <div class="bg-primary-subtle p-2 text-center rounded text-primary shadow-sm stat-card">
+                    <small class="text-muted">Status</small><br>
+                    <span class="badge {% if period_details.status == 'Active' %}bg-success{% elif period_details.status == 'Closed' %}bg-danger{% else %}bg-warning{% endif %}">
+                        {{ period_details.status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Summary Table -->
+        <div class="card border-0 shadow-sm animated-card" id="currentSummaryCard">
+            <div class="card-header bg-primary text-white py-2 d-flex justify-content-between align-items-center">
+                <strong><i class="fas fa-chart-line me-2"></i><span id="summaryTitle">Summary for Current Month</span></strong>
+                <div class="d-flex align-items-center">
+                    <small class="text-white me-3">Sections: {{ summary_data|length }}</small>
+                    {% if previous_period_details %}
+                    <button class="btn btn-sm btn-outline-light" id="toggleComparisonBtn" onclick="toggleComparison()">
+                        <span>👁 View detailed summary</span>
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0" id="summaryTable">
+                    <thead class="table-primary">
+                        <tr>
+                            <th>Section</th>
+                            <th class="text-center">Employees</th>
+                            <th class="text-center">Working Days</th>
+                            <th class="text-center">Absent</th>
+                            <th class="text-center">Leave</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in summary_data %}
+                        <tr class="animated-row">
+                            <td>{{ row.section }}</td>
+                            <td class="text-center">{{ row.total_employees }}</td>
+                            <td class="text-center text-success">{{ row.total_attendance }}</td>
+                            <td class="text-center text-danger">{{ row.absent }}</td>
+                            <td class="text-center text-warning">{{ row.leave }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        {% if summary_data and selected_period and selected_zm %}
+<div class="card border-0 shadow-sm animated-card mt-3" id="approveCard">
+    <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+        <strong><i class="fas fa-check-circle me-2"></i>Attendance Approval</strong>
+        <small class="text-white">Action Required</small>
+    </div>
+    <div class="card-body text-center">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <p class="mb-2 text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Click below to approve all pending attendance records for the selected period and zone.
+                </p>
+                <small class="text-warning">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    This action will change attendance status from 'Verified' to 'Approved' and cannot be undone.
+                </small>
+            </div>
+            <div class="col-md-4">
+                <button type="button" class="btn btn-success btn-lg animated-button" id="approveBtn" onclick="approveAttendance()">
+                    <i class="fas fa-check-double me-2"></i>
+                    <span id="btnText">Approve Attendance</span>
+                    <div class="spinner-border spinner-border-sm ms-2 d-none" id="btnSpinner" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Success/Error Alert Modal -->
+<div class="modal fade" id="resultModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" id="modalHeader">
+                <h5 class="modal-title" id="modalTitle">
+                    <i class="fas fa-check-circle me-2"></i>Success
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center" id="modalBody">
+                <p id="modalMessage">Attendance approved successfully!</p>
+            </div>
+            <div class="modal-footer justify-content-center">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="window.location.reload();">
+                    <i class="fas fa-sync-alt me-1"></i>Refresh Page
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card border-0 shadow-sm animated-card mt-3" id="returnCard">
+    <div class="card-header bg-warning text-dark py-2 d-flex justify-content-between align-items-center">
+        <strong><i class="fas fa-undo-alt me-2"></i>Return Rejected Attendance</strong>
+        <small class="text-dark">Correction Required</small>
+    </div>
+    <div class="card-body text-center">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <p class="mb-2 text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    If attendance is rejected by Head Office, return it to the Assistant Manager for correction.
+                </p>
+                <small class="text-danger">
+                    <i class="fas fa-exclamation-circle me-1"></i>
+                    This will change the status from 'J' (Rejected) to 'V' (Verified).
+                </small>
+            </div>
+            <div class="col-md-4">
+                <button type="button" class="btn btn-warning btn-lg animated-button" id="returnBtn" onclick="returnAttendance()">
+                    <i class="fas fa-undo-alt me-2"></i>
+                    <span id="returnBtnText">Return for Correction</span>
+                    <div class="spinner-border spinner-border-sm ms-2 d-none" id="returnBtnSpinner" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+        <!-- Line Chart Card -->
+        {% if comparison_data %}
+        <div class="card border-0 shadow-sm animated-card mt-3" id="chartCard" style="display: none;">
+            <div class="card-header bg-info text-white py-2">
+                <strong><i class="fas fa-chart-line me-2"></i>Section-wise Attendance Trends</strong>
+            </div>
+            <div class="card-body">
+                <canvas id="attendanceChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Comparison Table -->
+        {% if comparison_data %}
+        <div class="card border-0 shadow-sm animated-card mt-3" id="comparisonCard" style="display: none;">
+            <div class="card-header bg-orange text-white py-2">
+                <strong><i class="fas fa-balance-scale me-2"></i>Difference Summary Previous and Current Month</strong>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-info">
+                        <tr>
+                            <th rowspan="2" class="align-middle">Section</th>
+                            <th colspan="4" class="text-center border-end">Previous Month ({{ previous_period_details.month }})</th>
+                            <th colspan="4" class="text-center border-end">Current Month ({{ period_details.month }})</th>
+                            <th colspan="4" class="text-center">Difference</th>
+                        </tr>
+                        <tr>
+                            <!-- Previous Month -->
+                            <th class="text-center">Emp</th>
+                            <th class="text-center">Work Days</th>
+                            <th class="text-center">Absent</th>
+                            <th class="text-center border-end">Leave</th>
+                            <!-- Current Month -->
+                            <th class="text-center">Emp</th>
+                            <th class="text-center">Work Days</th>
+                            <th class="text-center">Absent</th>
+                            <th class="text-center border-end">Leave</th>
+                            <!-- Difference -->
+                            <th class="text-center">Emp</th>
+                            <th class="text-center">Work Days</th>
+                            <th class="text-center">Absent</th>
+                            <th class="text-center">Leave</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in comparison_data %}
+                        <tr class="animated-row">
+                            <td class="fw-bold">{{ row.section }}</td>
+                            <!-- Previous Month Data -->
+                            <td class="text-center">{{ row.previous.total_employees }}</td>
+                            <td class="text-center text-success">{{ row.previous.total_attendance }}</td>
+                            <td class="text-center text-danger">{{ row.previous.absent }}</td>
+                            <td class="text-center text-warning border-end">{{ row.previous.leave }}</td>
+                            <!-- Current Month Data -->
+                            <td class="text-center">{{ row.current.total_employees }}</td>
+                            <td class="text-center text-success">{{ row.current.total_attendance }}</td>
+                            <td class="text-center text-danger">{{ row.current.absent }}</td>
+                            <td class="text-center text-warning border-end">{{ row.current.leave }}</td>
+                            <!-- Difference -->
+                            <td class="text-center {% if row.diff_employees > 0 %}text-success{% elif row.diff_employees < 0 %}text-danger{% endif %}">
+                                {% if row.diff_employees > 0 %}+{% endif %}{{ row.diff_employees }}
+                            </td>
+                            <td class="text-center {% if row.diff_attendance > 0 %}text-success{% elif row.diff_attendance < 0 %}text-danger{% endif %}">
+                                {% if row.diff_attendance > 0 %}+{% endif %}{{ row.diff_attendance }}
+                            </td>
+                            <td class="text-center {% if row.diff_absent > 0 %}text-danger{% elif row.diff_absent < 0 %}text-success{% endif %}">
+                                {% if row.diff_absent > 0 %}+{% endif %}{{ row.diff_absent }}
+                            </td>
+                            <td class="text-center {% if row.diff_leave > 0 %}text-warning{% elif row.diff_leave < 0 %}text-success{% endif %}">
+                                {% if row.diff_leave > 0 %}+{% endif %}{{ row.diff_leave }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+    {% elif selected_period and selected_zm %}
+    <!-- No Data Found -->
+    <div class="card mt-4 border-0 shadow-sm animated-card">
+        <div class="card-body text-center bg-light">
+            <i class="fas fa-exclamation-circle text-primary mb-3 animated-icon" style="font-size: 2rem;"></i>
+            <h6 class="text-muted">No data available for the selected filters.</h6>
+            <button class="btn btn-sm btn-outline-primary mt-2 animated-button" onclick="window.location.reload();">
+                <i class="fas fa-sync-alt me-1"></i>Refresh
+            </button>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Hidden JSON data for JavaScript -->
+{% if comparison_data %}
+<script type="application/json" id="chart-data">
+{
+    "sections": [
+        {% for row in comparison_data %}
+        "{{ row.section|escapejs }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ],
+    "currentMonth": {
+        "absent": [
+            {% for row in comparison_data %}
+            {{ row.current.absent|default:0 }}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        "leave": [
+            {% for row in comparison_data %}
+            {{ row.current.leave|default:0 }}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    },
+    "previousMonth": {
+        "absent": [
+            {% for row in comparison_data %}
+            {{ row.previous.absent|default:0 }}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        "leave": [
+            {% for row in comparison_data %}
+            {{ row.previous.leave|default:0 }}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ]
+    }
+}
+</script>
+{% endif %}
+
+<!-- Chart.js CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+
+<script>
+let attendanceChart = null;
+
+// Function to extract chart data from hidden JSON element
+function getChartDataFromTemplate() {
+    const chartDataElement = document.getElementById('chart-data');
+    if (chartDataElement) {
+        try {
+            return JSON.parse(chartDataElement.textContent);
+        } catch (e) {
+            console.error('Error parsing chart data:', e);
+            return null;
+        }
+    }
+    return null;
+}
+
+function createAttendanceChart() {
+    const ctx = document.getElementById('attendanceChart');
+    if (!ctx) return;
+    
+    const ctxContext = ctx.getContext('2d');
+    
+    if (attendanceChart) {
+        attendanceChart.destroy();
+    }
+    
+    const chartData = getChartDataFromTemplate();
+    if (!chartData) {
+        console.error('No chart data available');
+        return;
+    }
+    
+    attendanceChart = new Chart(ctxContext, {
+        type: 'line',
+        data: {
+            labels: chartData.sections,
+            datasets: [
+                {
+                    label: 'Current Month - Absent',
+                    data: chartData.currentMonth.absent,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    pointBackgroundColor: '#dc3545',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                {
+                    label: 'Current Month - Leave',
+                    data: chartData.currentMonth.leave,
+                    borderColor: '#ffc107',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    borderWidth: 3,
+                    fill: false,
+                    tension: 0.4,
+                    pointBackgroundColor: '#ffc107',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                },
+                {
+                    label: 'Previous Month - Absent',
+                    data: chartData.previousMonth.absent,
+                    borderColor: '#fd7e14',
+                    backgroundColor: 'rgba(253, 126, 20, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointBackgroundColor: '#fd7e14',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderDash: [5, 5]
+                },
+                {
+                    label: 'Previous Month - Leave',
+                    data: chartData.previousMonth.leave,
+                    borderColor: '#20c997',
+                    backgroundColor: 'rgba(32, 201, 151, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.4,
+                    pointBackgroundColor: '#20c997',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderDash: [5, 5]
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Attendance Comparison: Current vs Previous Month',
+                    font: {
+                        size: 16,
+                        weight: 'bold'
+                    },
+                    color: '#333'
+                },
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20,
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    borderColor: '#ddd',
+                    borderWidth: 1,
+                    cornerRadius: 6,
+                    displayColors: true
+                }
+            },
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Sections',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        display: true,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    ticks: {
+                        font: {
+                            size: 11
+                        },
+                        maxRotation: 45
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Number of Days',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    grid: {
+                        display: true,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    },
+                    beginAtZero: true,
+                    ticks: {
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            },
+            animation: {
+                duration: 1000,
+                easing: 'easeInOutQuart'
+            }
+        }
+    });
+}
+
+function toggleComparison() {
+    const comparisonCard = document.getElementById('comparisonCard');
+    const chartCard = document.getElementById('chartCard');
+    const summaryTitle = document.getElementById('summaryTitle');
+    const toggleBtn = document.getElementById('toggleComparisonBtn');
+    
+    if (!comparisonCard) return;
+    
+    if (comparisonCard.style.display === 'none' || comparisonCard.style.display === '') {
+        // Show comparison and chart
+        if (chartCard) {
+            chartCard.style.display = 'block';
+        }
+        comparisonCard.style.display = 'block';
+        
+        if (summaryTitle) {
+            summaryTitle.textContent = 'Summary for Current Month';
+        }
+        
+        if (toggleBtn) {
+            toggleBtn.innerHTML = '<span>👁‍🗨️ Hide detailed summary</span>';
+        }
+        
+        // Add slide down animation
+        if (chartCard) {
+            chartCard.style.opacity = '0';
+            chartCard.style.transform = 'translateY(-20px)';
+        }
+        comparisonCard.style.opacity = '0';
+        comparisonCard.style.transform = 'translateY(-20px)';
+        
+        setTimeout(function() {
+            if (chartCard) {
+                chartCard.style.transition = 'all 0.3s ease';
+                chartCard.style.opacity = '1';
+                chartCard.style.transform = 'translateY(0)';
+            }
+            
+            comparisonCard.style.transition = 'all 0.3s ease';
+            comparisonCard.style.opacity = '1';
+            comparisonCard.style.transform = 'translateY(0)';
+            
+            // Create chart after animation
+            if (chartCard) {
+                setTimeout(function() {
+                    createAttendanceChart();
+                }, 300);
+            }
+        }, 10);
+    } else {
+        // Hide comparison and chart
+        if (chartCard) {
+            chartCard.style.transition = 'all 0.3s ease';
+            chartCard.style.opacity = '0';
+            chartCard.style.transform = 'translateY(-20px)';
+        }
+        
+        comparisonCard.style.transition = 'all 0.3s ease';
+        comparisonCard.style.opacity = '0';
+        comparisonCard.style.transform = 'translateY(-20px)';
+        
+        setTimeout(function() {
+            if (chartCard) {
+                chartCard.style.display = 'none';
+            }
+            comparisonCard.style.display = 'none';
+            
+            if (summaryTitle) {
+                summaryTitle.textContent = 'Summary for Current Month';
+            }
+            
+            if (toggleBtn) {
+                toggleBtn.innerHTML = '<span>👁 View detailed summary</span>';
+            }
+            
+            // Destroy chart to prevent memory leaks
+            if (attendanceChart) {
+                attendanceChart.destroy();
+                attendanceChart = null;
+            }
+        }, 300);
+    }
+}
+</script>
+
+<script>function approveAttendance() {
+    const approveBtn = document.getElementById('approveBtn');
+    const btnText = document.getElementById('btnText');
+    const btnSpinner = document.getElementById('btnSpinner');
+    
+    // Get the selected values - Fix template variable access
+    const selectedPeriod = document.querySelector('select[name="period"]').value;
+    const selectedZm = document.querySelector('select[name="zm_id"]').value;
+    
+    console.log('Selected Period:', selectedPeriod);
+    console.log('Selected ZM:', selectedZm);
+    
+    if (!selectedPeriod || !selectedZm) {
+        showModal('error', 'Error', 'Please select both period and zone manager before approving.');
+        return;
+    }
+    
+    // Show loading state
+    approveBtn.disabled = true;
+    btnText.textContent = 'Processing...';
+    btnSpinner.classList.remove('d-none');
+    
+    // Get CSRF token
+    const csrftoken = getCookie('csrftoken');
+    console.log('CSRF Token:', csrftoken);
+    
+    // Make AJAX request
+    fetch('/approve-attendance/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            period: selectedPeriod,
+            zm_id: selectedZm
+        })
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        
+        // Reset button state
+        approveBtn.disabled = false;
+        btnText.textContent = 'Approve Attendance';
+        btnSpinner.classList.add('d-none');
+        
+        if (data.success) {
+            showModal('success', 'Success!', data.message);
+            // Optionally hide the approve button after success
+            setTimeout(() => {
+                document.getElementById('approveCard').style.display = 'none';
+            }, 2000);
+        } else {
+            showModal('error', 'Error', data.message || 'An error occurred while approving attendance.');
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        
+        // Reset button state
+        approveBtn.disabled = false;
+        btnText.textContent = 'Approve Attendance';
+        btnSpinner.classList.add('d-none');
+        
+        showModal('error', 'Error', `Network error occurred: ${error.message}. Please try again.`);
+    });
+}
+
+function showModal(type, title, message) {
+    const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+    const modalHeader = document.getElementById('modalHeader');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalMessage = document.getElementById('modalMessage');
+    
+    if (type === 'success') {
+        modalHeader.className = 'modal-header bg-success text-white';
+        modalTitle.innerHTML = '<i class="fas fa-check-circle me-2"></i>' + title;
+    } else {
+        modalHeader.className = 'modal-header bg-danger text-white';
+        modalTitle.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>' + title;
+    }
+    
+    modalMessage.textContent = message;
+    modal.show();
+}
+
+// Enhanced function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    
+    // If CSRF token not found in cookies, try to get from meta tag or hidden input
+    if (!cookieValue) {
+        const csrfMeta = document.querySelector('meta[name=csrf-token]');
+        if (csrfMeta) {
+            cookieValue = csrfMeta.getAttribute('content');
+        } else {
+            const csrfInput = document.querySelector('input[name=csrfmiddlewaretoken]');
+            if (csrfInput) {
+                cookieValue = csrfInput.value;
+            }
+        }
+    }
+    
+    console.log('CSRF token found:', cookieValue ? 'Yes' : 'No');
+    return cookieValue;
+}
+</script>
+<script>function returnAttendance() {
+    const returnBtn = document.getElementById('returnBtn');
+    const returnBtnText = document.getElementById('returnBtnText');
+    const returnBtnSpinner = document.getElementById('returnBtnSpinner');
+
+    const selectedPeriod = document.querySelector('select[name="period"]').value;
+    const selectedZm = document.querySelector('select[name="zm_id"]').value;
+
+    if (!selectedPeriod || !selectedZm) {
+        showModal('error', 'Error', 'Please select both period and zone manager before returning.');
+        return;
+    }
+
+    returnBtn.disabled = true;
+    returnBtnText.textContent = 'Processing...';
+    returnBtnSpinner.classList.remove('d-none');
+
+    const csrftoken = getCookie('csrftoken');
+
+    fetch('/return-for-correction/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            period: selectedPeriod,
+            zm_id: selectedZm
+        })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error: ${response.status}`);
+        return response.json();
+    })
+    .then(data => {
+        returnBtn.disabled = false;
+        returnBtnText.textContent = 'Return for Correction';
+        returnBtnSpinner.classList.add('d-none');
+
+        if (data.success) {
+            showModal('success', 'Success!', data.message);
+        } else {
+            showModal('error', 'Error', data.message || 'Failed to return attendance for correction.');
+        }
+    })
+    .catch(error => {
+        console.error('Return Error:', error);
+        returnBtn.disabled = false;
+        returnBtnText.textContent = 'Return for Correction';
+        returnBtnSpinner.classList.add('d-none');
+        showModal('error', 'Error', `Network error: ${error.message}`);
+    });
+}
+</script>
+
+<style>
+/* Additional styles for the approve button */
+#approveBtn {
+    min-width: 200px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+#approveBtn:hover:not(:disabled) {
+    transform: scale(1.05);
+    box-shadow: 0 6px 20px rgba(25, 135, 84, 0.4);
+}
+
+#approveBtn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+#approveCard {
+    border-left: 4px solid #198754;
+}
+
+#approveCard .card-header {
+    background: linear-gradient(135deg, #198754, #20c997) !important;
+}
+
+/* Modal animations */
+.modal.fade .modal-dialog {
+    transform: scale(0.8);
+    transition: transform 0.3s ease-out;
+}
+
+.modal.show .modal-dialog {
+    transform: scale(1);
+}
+
+/* Pulse animation for approve button */
+@keyframes approve-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(25, 135, 84, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0);
+    }
+}
+
+#approveBtn:not(:disabled):hover {
+    animation: approve-pulse 1.5s infinite;
+}
+</style>
+
+<style>
+/* Base styles */
+.form-label {
+    font-size: 0.85rem;
+}
+.table th, .table td {
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+.card-header strong {
+    font-size: 0.9rem;
+}
+.btn, .form-select {
+    font-size: 0.85rem;
+}
+.table thead.table-primary {
+    background-color: #e3f2fd;
+}
+.table thead.table-info {
+    background-color: #e1f5fe;
+}
+.bg-primary-subtle {
+    background-color: #e3f2fd;
+}
+
+/* Orange card header */
+.bg-orange {
+    background-color: #fd7e14 !important;
+}
+
+/* Chart container */
+#attendanceChart {
+    height: 400px !important;
+}
+
+/* Card Animations */
+.animated-card {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.animated-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+}
+
+/* Stat Cards Animation */
+.stat-card {
+    transition: all 0.3s ease;
+    transform: scale(1);
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+.stat-card:hover {
+    transform: scale(1.05) translateY(-3px);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15) !important;
+    background-color: #d1ecf1 !important;
+}
+
+/* Table Row Animation */
+.animated-row {
+    transition: all 0.2s ease;
+}
+
+.animated-row:hover {
+    transform: translateX(5px);
+    background-color: #f8f9fa !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Button Animations */
+.animated-button {
+    transition: all 0.3s ease;
+    transform: scale(1);
+    position: relative;
+    overflow: hidden;
+}
+
+.animated-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.animated-button:active {
+    transform: scale(0.98);
+}
+
+/* Input Animations */
+.animated-input {
+    transition: all 0.3s ease;
+    border: 1px solid #dee2e6;
+}
+
+.animated-input:focus {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25), 0 4px 12px rgba(0,0,0,0.1);
+    border-color: #86b7fe;
+}
+
+/* Icon Animation */
+.animated-icon {
+    transition: all 0.3s ease;
+    animation: pulse 2s infinite;
+}
+
+.animated-icon:hover {
+    transform: scale(1.2) rotate(5deg);
+    color: #0d6efd !important;
+}
+
+/* Eye button hover effect */
+#toggleComparisonBtn {
+    transition: all 0.3s ease;
+}
+
+#toggleComparisonBtn:hover {
+    transform: scale(1.1);
+    background-color: rgba(255,255,255,0.2) !important;
+}
+
+/* Pulse Animation */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Card entrance animation */
+.animated-card {
+    animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Staggered animation for stat cards */
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+.stat-card:nth-child(5) { animation-delay: 0.5s; }
+
+.stat-card {
+    animation: fadeInScale 0.6s ease-out both;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Table row staggered animation */
+.animated-row {
+    animation: fadeInSlide 0.5s ease-out both;
+}
+
+.animated-row:nth-child(1) { animation-delay: 0.1s; }
+.animated-row:nth-child(2) { animation-delay: 0.15s; }
+.animated-row:nth-child(3) { animation-delay: 0.2s; }
+.animated-row:nth-child(4) { animation-delay: 0.25s; }
+.animated-row:nth-child(5) { animation-delay: 0.3s; }
+
+@keyframes fadeInSlide {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Enhanced shadow effects */
+.shadow-sm {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Loading state for buttons */
+.animated-button:disabled {
+    opacity: 0.6;
+    transform: scale(1);
+    cursor: not-allowed;
+}
+
+/* Smooth scrolling */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for table */
+.table-responsive::-webkit-scrollbar {
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* Comparison table specific styles */
+#comparisonCard .table th {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.25rem;
+    white-space: nowrap;
+}
+
+#comparisonCard .table td {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.25rem;
+}
+
+/* Border styles for comparison table */
+.border-end {
+    border-right: 2px solid #dee2e6 !important;
+}
+
+/* Hide JSON data */
+#chart-data {
+    display: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #comparisonCard .table th,
+    #comparisonCard .table td {
+        font-size: 0.7rem;
+        padding: 0.25rem;
+    }
+    
+    #attendanceChart {
+        height: 300px !important;
+    }
+}
+</style>
+{% endblock %}

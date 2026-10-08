@@ -1,0 +1,727 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+    <style>
+        .card-header {
+            background: linear-gradient(135deg, #268aee, #1368d0);
+            color: white;
+            font-weight: bold;
+        }
+        
+        .employee-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 200px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .employee-dropdown .dropdown-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .employee-dropdown .dropdown-item:hover,
+        .employee-dropdown .dropdown-item.active {
+            background-color: #f8f9fa;
+        }
+        
+        .search-container {
+            position: relative;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .status-new { background-color: #d1ecf1; color: #0c5460; }
+        .status-initiated { background-color: #fff3cd; color: #856404; }
+        .status-approved { background-color: #d4edda; color: #155724; }
+        .status-rejected { background-color: #f8d7da; color: #721c24; }
+        
+        .period-info {
+            border-left: 4px solid #2196f3;
+        }
+        
+        .employee-info {
+            border-left: 4px solid #2196f3;
+        }
+        
+        .date-dropdown {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .btn-submit {
+            background: linear-gradient(135deg, #e9a72cf5, #f7c04b);
+            border: none;
+            color: white;
+            padding: 8px 20px;
+            font-weight: bold;
+            border-radius: 20px;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+        }
+        
+        .btn-submit:hover {
+            background: linear-gradient(135deg, #f4d35e, #fcce45ac);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .btn-submit:disabled {
+            background: #6c757d;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .btn-submit-all {
+            background: linear-gradient(135deg, #28a745, #20c997);
+            border: none;
+            color: white;
+            padding: 12px 30px;
+            font-weight: bold;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-submit-all:hover {
+            background: linear-gradient(135deg, #20c997, #17a2b8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .attendance-form {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            margin-top: 20px;
+        }
+        
+        .form-label {
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .alert-custom {
+            border-left: 4px solid #dc3545;
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+        
+        /* Enhanced Table Styles */
+        .attendance-table {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .attendance-table .table {
+            margin-bottom: 0;
+        }
+        
+        .attendance-table .table thead th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            border: none;
+            padding: 15px 12px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .attendance-table .table tbody tr {
+            transition: all 0.3s ease;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .attendance-table .table tbody tr:hover {
+            background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .attendance-table .table tbody tr:last-child {
+            border-bottom: none;
+        }
+        
+        .attendance-table .table td {
+            padding: 15px 12px;
+            vertical-align: middle;
+            border: none;
+            font-size: 0.9rem;
+        }
+        
+        .employee-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        .employee-id {
+            color: #7f8c8d;
+            font-size: 0.85rem;
+        }
+        
+        .form-select-sm {
+            padding: 6px 10px;
+            font-size: 0.85rem;
+            border-radius: 6px;
+            border: 1px solid #ddd;
+            transition: all 0.3s ease;
+        }
+        
+        .form-select-sm:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .leave-indicator {
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%);
+            color: #721c24;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .holiday-indicator {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            color: #8b4513;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .existing-record {
+            background: linear-gradient(135deg, #a8e6cf 0%, #88d8c0 100%);
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .table-container {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .table-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(135deg, #000000 0%, #04060d 100%);
+        }
+        
+        .table-stats {
+            background: linear-gradient(135deg, #f79e17 0%, #f4b735 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            display: block;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+    </style>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar-check me-2"></i>
+                            <h5 class="mb-0" style="color: white;">Attendance Submission</h5>
+                        </div>
+                        <small class="text-light opacity-75">
+                            <i class="fas fa-clock me-1"></i>
+                            {% now "d-m-Y H:i" %}
+                        </small>
+                    </div>
+                    
+                    <div class="card-body">
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% else %}info-circle{% endif %} me-2"></i>
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                        
+                        <!-- Date Selection Section -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card h-100 period-info">
+                                    <div class="card-header bg-info text-white">
+                                        <i class="fas fa-calendar-alt me-2"></i>Select Attendance Date
+                                    </div>
+                                    <div class="card-body">
+                                        <form method="post" id="dateForm">
+                                            {% csrf_token %}
+                                            <div class="mb-3">
+                                                <label for="selected_date" class="form-label">Available Dates</label>
+                                                <select class="form-select" id="selected_date" name="selected_date" onchange="this.form.submit()">
+                                                    <option value="">Choose attendance date...</option>
+                                                    {% for date in available_dates %}
+                                                        <option value="{{ date.date|date:'Y-m-d' }}" 
+                                                                {% if selected_date == date.date %}selected{% endif %}>
+                                                            {{ date.formatted_date }} - {{ date.day_name }}
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Period Information Card -->
+                            <div class="col-md-6">
+                                {% if date_info %}
+                                    <div class="card h-100 period-info">
+                                        <div class="card-header bg-primary text-white">
+                                            <i class="fas fa-info-circle me-2"></i>Period Information
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3">
+                                                <div class="col-6">
+                                                    <strong>Date:</strong><br>
+                                                    <span class="text-primary">{{ date_info.formatted_date }}</span>
+                                                </div>
+                                                <div class="col-6">
+                                                    <strong>Day:</strong><br>
+                                                    <span class="text-primary">{{ date_info.day_name }}</span>
+                                                </div>
+                                                <div class="col-6">
+                                                    <strong>Period:</strong><br>
+                                                    <span class="text-muted">{{ date_info.period_from }} to {{ date_info.period_to }}</span>
+                                                </div>
+                                                <div class="col-6">
+                                                    <strong>Status:</strong><br>
+                                                    <span class="status-badge status-new">{{ date_info.period_status }}</span>
+                                                </div>
+                                            </div>
+                                            
+                                            {% if attendance_exists %}
+                                                <div class="mt-3 p-2 bg-warning bg-opacity-10 border border-warning rounded">
+                                                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                                                    <small>Attendance already exists for this date</small>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Employee Search Section
+                        {% if selected_date %}
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-success text-white">
+                                        <i class="fas fa-user-search me-2"></i>Search Employee
+                                    </div>
+                                    <div class="card-body">
+                                        <form method="post" id="searchForm">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="selected_date" value="{{ selected_date|date:'Y-m-d' }}">
+                                            <div class="input-group search-container">
+                                                <input type="text" 
+                                                       id="search_term" 
+                                                       name="search_term"
+                                                       class="form-control" 
+                                                       placeholder="Search by Employee ID or Name..." 
+                                                       autocomplete="off"
+                                                       value="{{ search_term }}">
+                                                <button class="btn btn-outline-primary" type="submit" name="search_employee">
+                                                    <i class="fas fa-search"></i>
+                                                </button>
+                                                <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %} -->
+                        
+                        <div>
+                            <br></br>
+                        </div>
+                        <!-- Employees Attendance Table -->
+                        {% if show_all_employees and employees_data %}
+                        <div class="row">
+                            <div class="col-12">
+                                <!-- Statistics Row -->
+                                <div class="table-stats">
+                                    <div class="row">
+                                        <div class="col-md-3 stat-item">
+                                            <span class="stat-number">{{ employees_data|length }}</span>
+                                            <span class="stat-label">Total Employees</span>
+                                        </div>
+                                        <div class="col-md-3 stat-item">
+                                            <span class="stat-number" id="present-count">0</span>
+                                            <span class="stat-label">Present</span>
+                                        </div>
+                                        <div class="col-md-3 stat-item">
+                                            <span class="stat-number" id="leave-count">0</span>
+                                            <span class="stat-label">On Leave</span>
+                                        </div>
+                                        <div class="col-md-3 stat-item">
+                                            <span class="stat-number" id="absent-count">0</span>
+                                            <span class="stat-label">Absent</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="attendance-table">
+                                    <div class="table-container">
+                                        <table class="table table-hover mb-0">
+                                            <thead>
+                                                <tr>
+                                                    <th style="width: 25%;">Employee</th>
+                                                    <th style="width: 15%;">Status</th>
+                                                    <th style="width: 20%;">Leave Type</th>
+                                                    <th style="width: 15%;">Overtime</th>
+                                                    <th style="width: 15%;">Indicators</th>
+                                                    <th style="width: 10%;">Action</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for employee in employees_data %}
+                                                <tr class="employee-row" data-emp-no="{{ employee.emp_no }}">
+                                                    <td>
+                                                        <div class="employee-name">{{ employee.emp_name }}</div>
+                                                        <div class="employee-id">ID: {{ employee.emp_no }}</div>
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm attendance-status" 
+                                                                data-emp-no="{{ employee.emp_no }}" 
+                                                                onchange="handleStatusChange(this)">
+                                                            <option value="P" {% if employee.att_status == 'P' %}selected{% endif %}>Present</option>
+                                                            <option value="A" {% if employee.att_status == 'A' %}selected{% endif %}>Absent</option>
+                                                            <option value="L" {% if employee.att_status == 'L' %}selected{% endif %}>Leave</option>
+                                                            <option value="H" {% if employee.att_status == 'H' %}selected{% endif %}>Holiday</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm leave-type" 
+                                                                data-emp-no="{{ employee.emp_no }}"
+                                                                {% if employee.att_status != 'L' %}disabled{% endif %}>
+                                                            <option value="0">No Leave</option>
+                                                            {% for leave in leave_types %}
+                                                                <option value="{{ leave.id }}" 
+                                                                        {% if employee.att_leave_typ == leave.id %}selected{% endif %}>
+                                                                    {{ leave.name }}
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <select class="form-select form-select-sm overtime-type" 
+                                                                data-emp-no="{{ employee.emp_no }}"
+                                                                {% if employee.att_status != 'P' %}disabled{% endif %}>
+                                                            <option value="N" {% if employee.att_overtime_typ == 'N' %}selected{% endif %}>No Overtime</option>
+                                                            <option value="Y" {% if employee.att_overtime_typ == 'Y' %}selected{% endif %}>Overtime</option>
+                                                        </select>
+                                                    </td>
+                                                    <td>
+                                                        <div class="d-flex flex-column gap-1">
+                                                            {% if employee.has_approved_leave %}
+                                                                <span class="leave-indicator">
+                                                                    <i class="fas fa-calendar-times me-1"></i>Approved Leave
+                                                                </span>
+                                                            {% endif %}
+                                                            {% if employee.is_holiday %}
+                                                                <span class="holiday-indicator">
+                                                                    <i class="fas fa-calendar-day me-1"></i>Holiday
+                                                                </span>
+                                                            {% endif %}
+                                                            {% if employee.is_existing_record %}
+                                                                <span class="existing-record">
+                                                                    <i class="fas fa-check-circle me-1"></i>Recorded
+                                                                </span>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" 
+                                                                class="btn btn-submit btn-sm" 
+                                                                onclick="submitSingleAttendance('{{ employee.emp_no }}')">
+                                                            <i class="fas fa-save me-1"></i>Save
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                
+                                <!-- Submit All Button -->
+                                <div class="text-center mt-4">
+                                    <button type="button" class="btn btn-submit-all btn-lg" onclick="submitAllAttendance()">
+                                        <i class="fas fa-paper-plane me-2"></i>Submit All for Approval
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Help Section -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-question-circle me-2"></i>Attendance Status Guide
+                                        </h6>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <ul class="list-unstyled mb-0">
+                                                    <li><strong>P</strong> = Present</li>
+                                                    <li><strong>A</strong> = Absent</li>
+                                                </ul>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <ul class="list-unstyled mb-0">
+                                                    <li><strong>L</strong> = Leave</li>
+                                                    <li><strong>H</strong> = Holiday</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentSelectedDate = '{{ selected_date|date:"Y-m-d"|default:"" }}';
+        
+        // Clear search function
+        function clearSearch() {
+            document.getElementById('search_term').value = '';
+            document.getElementById('searchForm').submit();
+        }
+
+        // Handle attendance status change
+        function handleStatusChange(statusSelect) {
+            const empNo = statusSelect.dataset.empNo;
+            const status = statusSelect.value;
+            const leaveSelect = document.querySelector(`select.leave-type[data-emp-no="${empNo}"]`);
+            const overtimeSelect = document.querySelector(`select.overtime-type[data-emp-no="${empNo}"]`);
+            
+            if (status === 'L') {
+                leaveSelect.disabled = false;
+                if (leaveSelect.value === '0') {
+                    leaveSelect.value = '1'; // Default to first leave type
+                }
+                overtimeSelect.value = 'N';
+                overtimeSelect.disabled = true;
+            } else if (status === 'A' || status === 'H') {
+                leaveSelect.value = '0';
+                leaveSelect.disabled = true;
+                overtimeSelect.value = 'N';
+                overtimeSelect.disabled = true;
+            } else { // Present
+                leaveSelect.value = '0';
+                leaveSelect.disabled = true;
+                overtimeSelect.disabled = false;
+            }
+            
+            // Update statistics
+            updateStatistics();
+        }
+
+        // Update statistics
+        function updateStatistics() {
+            const statusSelects = document.querySelectorAll('.attendance-status');
+            let presentCount = 0;
+            let leaveCount = 0;
+            let absentCount = 0;
+            
+            statusSelects.forEach(select => {
+                const status = select.value;
+                if (status === 'P') presentCount++;
+                else if (status === 'L') leaveCount++;
+                else if (status === 'A') absentCount++;
+            });
+            
+            document.getElementById('present-count').textContent = presentCount;
+            document.getElementById('leave-count').textContent = leaveCount;
+            document.getElementById('absent-count').textContent = absentCount;
+        }
+
+        // Submit single employee attendance
+        function submitSingleAttendance(empNo) {
+            const statusSelect = document.querySelector(`select.attendance-status[data-emp-no="${empNo}"]`);
+            const leaveSelect = document.querySelector(`select.leave-type[data-emp-no="${empNo}"]`);
+            const overtimeSelect = document.querySelector(`select.overtime-type[data-emp-no="${empNo}"]`);
+            
+            const data = {
+                emp_no: empNo,
+                att_date: currentSelectedDate,
+                att_status: statusSelect.value,
+                leave_type: leaveSelect.value,
+                overtime_type: overtimeSelect.value
+            };
+            
+            const submitBtn = document.querySelector(`button[onclick="submitSingleAttendance('${empNo}')"]`);
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+            
+            fetch('/submit-attendance/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success feedback
+                    submitBtn.innerHTML = '<i class="fas fa-check me-1"></i>Saved';
+                    submitBtn.classList.remove('btn-submit');
+                    submitBtn.classList.add('btn-success');
+                    
+                    // Reset after 2 seconds
+                    setTimeout(() => {
+                        submitBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save';
+                        submitBtn.classList.remove('btn-success');
+                        submitBtn.classList.add('btn-submit');
+                    }, 2000);
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while submitting attendance.');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+            });
+        }
+
+        // Submit all attendance for approval
+        function submitAllAttendance() {
+            if (!currentSelectedDate) {
+                alert('Please select a date first');
+                return;
+            }
+            
+            if (confirm('Submit all attendance for this date for approval?')) {
+                const data = {
+                    att_date: currentSelectedDate
+                };
+                
+                const submitBtn = document.querySelector('.btn-submit-all');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+                
+                fetch('/submit-attendance-for-approval/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while submitting for approval.');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Submit All for Approval';
+                });
+            }
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize statistics
+            updateStatistics();
+            
+            // Initialize status handling for all existing selects
+            document.querySelectorAll('.attendance-status').forEach(select => {
+                handleStatusChange(select);
+            });
+        });
+    </script>
+{% endblock %}

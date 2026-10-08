@@ -1,0 +1,419 @@
+{% extends 'myapp/index.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container-fluid px-2 px-sm-3 px-md-4 py-3 py-md-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+                <div>
+                    <h2 class="mb-1 text-dark fw-bold fs-4 fs-md-3">
+                        <i class="fas fa-money-check-alt me-2 text-primary"></i>
+                        Allowance Prevailing Rate
+                    </h2>
+                    <p class="text-muted mb-0 small">Manage fuel allowance rates for salary periods</p>
+                </div>
+                {% if current_period %}
+                <div class="badge bg-success fs-6 px-3 py-2">
+                    <i class="fas fa-clock me-1"></i>
+                    Current Period: {{ current_period.period_month }}
+                </div>
+                {% else %}
+                <div class="badge bg-warning text-dark fs-6 px-3 py-2">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    No Open Period
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Current Period Info & Add Section -->
+    {% if current_period %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0 fw-semibold text-white">
+                        <i class="fas fa-plus-circle me-2"></i>
+                        Current Period - {{ current_period.period_month }}
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 align-items-center">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted fw-medium">Period:</label>
+                            <div class="fw-bold">{{ current_period.period_month }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted fw-medium">From:</label>
+                            <div class="fw-bold">{{ current_period.start_date }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted fw-medium">To:</label>
+                            <div class="fw-bold">{{ current_period.end_date }}</div>
+                        </div>
+                        <div class="col-md-3">
+                            {% if current_period.existing_rate %}
+                                <label class="form-label small text-muted fw-medium">Current Rate:</label>
+                                <div class="fw-bold text-success">{{ current_period.existing_rate }}</div>
+                                <button id="editRateBtn" class="btn btn-warning btn-sm mt-2">
+                                    <i class="fas fa-edit me-1"></i>Edit Rate
+                                </button>
+                            {% else %}
+                                <button id="addRateBtn" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus me-1"></i>Add Rate for Current Period
+                                </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Rate Input Form (Hidden by default) -->
+                    <div id="rateInputForm" class="mt-4 p-3 bg-light rounded" style="display: none;">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label for="rateInput" class="form-label small fw-medium">FUEL Allowance Rate:</label>
+                                <input type="number" id="rateInput" class="form-control" 
+                                       placeholder="Enter rate (e.g., 15.50)" step="0.01" min="0.01" 
+                                       value="{{ current_period.existing_rate|default:'' }}">
+                            </div>
+                            <div class="col-md-8">
+                                <div class="btn-group" role="group">
+                                    <button id="saveRateBtn" class="btn btn-success">
+                                        <i class="fas fa-save me-1"></i>Save Rate
+                                    </button>
+                                    <button id="cancelRateBtn" class="btn btn-secondary">
+                                        <i class="fas fa-times me-1"></i>Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Search Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0 fw-semibold text-white">
+                        <i class="fas fa-search me-2"></i>
+                        Search Historical Rates
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12 col-lg-6">
+                            <label for="searchInput" class="form-label small text-muted fw-medium">
+                                Search by Period or Rate:
+                            </label>
+                            <input type="text" id="searchInput" class="form-control form-control-sm" 
+                                   placeholder="Enter period or rate..." aria-label="Search allowance rates">
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <label for="statusFilter" class="form-label small text-muted fw-medium">
+                                Filter by Status:
+                            </label>
+                            <select id="statusFilter" class="form-select form-select-sm">
+                                <option value="">All Periods</option>
+                                <option value="N">Under Processing</option>
+                                <option value="Y">Completed</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Allowance Rates Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0 fw-semibold text-white">
+                        <i class="fas fa-table me-2"></i>
+                        FUEL Allowance Rate History
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="fw-semibold text-dark small">Period ID</th>
+                                    <th scope="col" class="fw-semibold text-dark small">Month</th>
+                                    <th scope="col" class="fw-semibold text-dark small">From Date</th>
+                                    <th scope="col" class="fw-semibold text-dark small">To Date</th>
+                                    <th scope="col" class="fw-semibold text-dark small">Allowance</th>
+                                    <th scope="col" class="fw-semibold text-dark small">Rate</th>
+                                    <th scope="col" class="fw-semibold text-dark small">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rateTableBody">
+                                {% for rate in allowance_rates %}
+                                <tr data-status="{{ rate.period_status }}">
+                                    <td class="fw-medium">{{ rate.allw_period }}</td>
+                                    <td>{{ rate.period_month }}</td>
+                                    <td>{{ rate.start_date }}</td>
+                                    <td>{{ rate.end_date }}</td>
+                                    <td>{{ rate.allw_desc }}</td>
+                                    <td class="fw-bold text-primary">{{ rate.allw_rate }}</td>
+                                    <td>
+                                        {% if rate.period_status == 'N' %}
+                                            <span class="badge bg-warning text-dark">Under Processing</span>
+                                        {% elif rate.period_status == 'Y' %}
+                                            <span class="badge bg-success">Completed</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ rate.period_status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        No fuel allowance rates found
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" 
+     style="background-color: rgba(248, 249, 250, 0.95); z-index: 9999; backdrop-filter: blur(2px);">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 2.5rem; height: 2.5rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted small mb-0">Saving allowance rate...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Styles -->
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        transition: background-color 0.15s ease-in-out;
+    }
+    .card {
+        transition: box-shadow 0.15s ease-in-out;
+    }
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.7;
+    }
+    .btn-loading .fa-spinner {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    #rateInputForm {
+        border-left: 4px solid #0d6efd;
+    }
+</style>
+
+<!-- Hidden data elements for JavaScript -->
+{% if current_period %}
+<input type="hidden" id="current-period-id" value="{{ current_period.sal_period_id }}">
+<input type="hidden" id="current-period-month" value="{{ current_period.period_month }}">
+<input type="hidden" id="has-existing-rate" value="{% if current_period.existing_rate %}true{% else %}false{% endif %}">
+{% endif %}
+
+<script>
+    // Get CSRF token
+    function getCsrfToken() {
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (csrfToken) {
+            return csrfToken.value;
+        }
+        // Fallback: get from cookie
+        const cookieValue = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('csrftoken='))
+            ?.split('=')[1];
+        return cookieValue || '';
+    }
+
+    // Show/Hide loading overlay
+    function showLoading() {
+        document.getElementById('loadingOverlay').classList.remove('d-none');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('d-none');
+        document.body.style.overflow = 'auto';
+    }
+
+    // Show/Hide rate input form
+    function showRateForm() {
+        document.getElementById('rateInputForm').style.display = 'block';
+        document.getElementById('rateInput').focus();
+    }
+
+    function hideRateForm() {
+        document.getElementById('rateInputForm').style.display = 'none';
+        document.getElementById('rateInput').value = document.getElementById('has-existing-rate').value === 'true' ? 
+            document.getElementById('rateInput').defaultValue : '';
+    }
+
+    // Search filter
+    document.getElementById('searchInput').addEventListener('input', function() {
+        filterTable();
+    });
+
+    document.getElementById('statusFilter').addEventListener('change', function() {
+        filterTable();
+    });
+
+    function filterTable() {
+        const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const statusFilter = document.getElementById('statusFilter').value;
+        const rows = document.querySelectorAll('#rateTableBody tr[data-status]');
+        
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            const status = row.getAttribute('data-status');
+            
+            const matchesSearch = text.includes(searchTerm);
+            const matchesStatus = !statusFilter || status === statusFilter;
+            
+            row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+        });
+    }
+
+    // Add rate button
+    const addRateBtn = document.getElementById('addRateBtn');
+    if (addRateBtn) {
+        addRateBtn.addEventListener('click', function() {
+            showRateForm();
+        });
+    }
+
+    // Edit rate button
+    const editRateBtn = document.getElementById('editRateBtn');
+    if (editRateBtn) {
+        editRateBtn.addEventListener('click', function() {
+            showRateForm();
+        });
+    }
+
+    // Cancel rate button
+    document.getElementById('cancelRateBtn').addEventListener('click', function() {
+        if (confirm('Are you sure you want to cancel? Any unsaved changes will be lost.')) {
+            hideRateForm();
+        }
+    });
+
+    // Save rate button
+    document.getElementById('saveRateBtn').addEventListener('click', function() {
+        const periodId = document.getElementById('current-period-id').value;
+        const rateInput = document.getElementById('rateInput');
+        const rate = rateInput.value.trim();
+
+        // Validation
+        if (!rate) {
+            alert('Please enter a rate.');
+            rateInput.focus();
+            return;
+        }
+
+        const rateNum = parseFloat(rate);
+        if (isNaN(rateNum) || rateNum <= 0) {
+            alert('Please enter a valid positive rate.');
+            rateInput.focus();
+            return;
+        }
+
+        if (!confirm('Are you sure you want to save this fuel allowance rate?\n\nThis will update all active employees for the current period.')) {
+            return;
+        }
+
+        const saveBtn = this;
+        saveBtn.classList.add('btn-loading');
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+        saveBtn.disabled = true;
+        
+        showLoading();
+
+        // Send AJAX request
+        fetch('/save-allowance-rate/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCsrfToken()
+            },
+            body: JSON.stringify({
+                allw_period: parseInt(periodId),
+                allw_id: 1009,
+                allw_rate: rateNum
+            })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            hideLoading();
+            saveBtn.classList.remove('btn-loading');
+            saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Rate';
+            saveBtn.disabled = false;
+            
+            if (data.success) {
+                alert(data.message + 
+                      (data.affected_employees ? '\n\nEmployees updated: ' + data.affected_employees : ''));
+                
+                // Refresh the page to show updated data
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            saveBtn.classList.remove('btn-loading');
+            saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Save Rate';
+            saveBtn.disabled = false;
+            alert('An error occurred: ' + error.message);
+            console.error('Error:', error);
+        });
+    });
+
+    // Enter key support for rate input
+    document.getElementById('rateInput').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('saveRateBtn').click();
+        }
+    });
+
+    // Escape key to cancel
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById('rateInputForm').style.display === 'block') {
+            document.getElementById('cancelRateBtn').click();
+        }
+    });
+</script>
+{% endblock %}

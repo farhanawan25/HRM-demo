@@ -1,0 +1,382 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+<div class="container-fluid py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+      <!-- Page Header with Animation -->
+      <div class="d-flex justify-content-between align-items-center mb-4 position-relative overflow-hidden">
+        <div class="page-header-content d-flex align-items-center">
+          <h2 class="mb-0 me-3 fw-bold text-primary">Payroll Period Management</h2>
+          <p class="lead text-muted mb-0 d-none d-sm-block">Create and track your company's payroll cycles</p>
+        </div>
+        <div class="payroll-icon d-none d-md-block">
+          <i class="fas fa-calendar-alt fa-3x text-primary opacity-25"></i>
+        </div>
+      </div>     
+
+      <!-- Create Payroll Period Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h3 class="h5 mb-0">
+            <i class="fas fa-plus-circle me-2"></i>Create New Period
+          </h3>
+        </div>
+        <div class="card-body">
+          <form method="POST" id="periodForm" class="needs-validation row" action="{% url 'sal_period_list' %}" novalidate>
+            {% csrf_token %}
+            
+            <div class="col-md-5 mb-3">
+              <label for="sal_period_from" class="form-label fw-bold">
+                <i class="fas fa-calendar-day me-1 text-primary"></i>Start Date
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light">
+                  <i class="fas fa-calendar-check text-primary"></i>
+                </span>
+                <input type="date" name="sal_period_from" id="sal_period_from" class="form-control" required>
+                <div class="invalid-feedback">Please select a start date.</div>
+              </div>
+            </div>
+            
+            <div class="col-md-5 mb-3">
+              <label for="sal_period_to" class="form-label fw-bold">
+                <i class="fas fa-calendar-day me-1 text-primary"></i>End Date
+              </label>
+              <div class="input-group">
+                <span class="input-group-text bg-light">
+                  <i class="fas fa-calendar-times text-primary"></i>
+                </span>
+                <input type="date" name="sal_period_to" id="sal_period_to" class="form-control" required>
+                <div class="invalid-feedback">Please select an end date.</div>
+              </div>
+            </div>
+            
+            <div class="col-md-2 mb-3 d-flex align-items-end">
+              <button type="submit" id="initializePayrollBtn" class="btn btn-primary w-100 position-relative">
+                <span class="d-flex align-items-center justify-content-center">
+                  <span>Create Period</span>
+                </span>
+              </button>
+            </div>
+
+            <div class="col-12">
+              <div class="d-flex align-items-center text-muted small">
+                <i class="fas fa-info-circle text-primary me-2"></i>
+                <small>Periods cannot exceed 31 days and require previous periods to be processed.</small>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+      
+      <!-- Payroll Period List Card -->
+      <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+          <h3 class="h5 mb-0">
+            <i class="fas fa-list-alt me-2"></i>Payroll Period List
+          </h3>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light text-primary">
+                <tr>
+                  <th class="px-3">Period ID</th>
+                  <th>Year</th>
+                  <th>Month</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Days</th>
+                  <th class="text-center">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for sal_period in sal_periods %}
+                  <tr class="period-row" data-period-id="{{ sal_period.sal_period_id }}">
+                    <td class="fw-bold px-3">#{{ sal_period.sal_period_id }}</td>
+                    <td>{{ sal_period.sal_period_yr }}</td>
+                    <td>{{ sal_period.sal_period_month|date:"F" }}</td>
+                    <td>{{ sal_period.sal_period_from|date:"M d, Y" }}</td>
+                    <td>{{ sal_period.sal_period_to|date:"M d, Y" }}</td>
+                    <td class="text-center">{{ sal_period.sal_period_dayscount }}</td>
+                    <td class="text-center">
+                      {% if sal_period.sal_period_flg == 'P' %}
+                        <span class="badge bg-success">Processed</span>
+                      {% elif sal_period.sal_period_flg == 'I' %}
+                        <span class="badge bg-warning text-dark">In Progress</span>
+                      {% elif sal_period.sal_period_flg == 'V' %}
+                        <span class="badge bg-primary">Verified</span>
+                      {% elif sal_period.sal_period_flg == 'N' %}
+                        <span class="badge bg-info text-dark">New</span>
+                      {% else %}
+                        <span class="badge bg-secondary">{{ sal_period.sal_period_flg }}</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="7" class="text-center py-5">
+                      <div class="empty-state">
+                        <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                        <h5>No payroll periods available</h5>
+                        <p class="text-muted">Create your first payroll period to get started.</p>
+                      </div>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+        {% if sal_periods %}
+        <div class="card-footer bg-light d-flex justify-content-between align-items-center">
+          <div>
+            <small class="text-muted">Showing most recent 5 periods</small>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      
+      <!-- Payroll Period Guide -->
+      <div class="card border-0 shadow-sm bg-light mb-4">
+        <div class="card-body">
+          <h4 class="text-primary mb-3">
+            <i class="fas fa-lightbulb me-2"></i>Quick Guide
+          </h4>
+          <div class="row row-cols-1 row-cols-md-3 g-3">
+            <div class="col">
+              <div class="d-flex">
+                <div class="me-3">
+                  <span class="badge rounded-pill bg-primary p-2">
+                    <i class="fas fa-check-circle fa-lg"></i>
+                  </span>
+                </div>
+                <div>
+                  <h5 class="fs-6">Creating a Period</h5>
+                  <p class="small text-muted mb-0">Set start and end dates for the payroll cycle. Maximum duration is 31 days.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="d-flex">
+                <div class="me-3">
+                  <span class="badge rounded-pill bg-primary p-2">
+                    <i class="fas fa-sync-alt fa-lg"></i>
+                  </span>
+                </div>
+                <div>
+                  <h5 class="fs-6">Period Status</h5>
+                  <p class="small text-muted mb-0">Periods must be fully processed (P) before creating a new one.</p>
+                </div>
+              </div>
+            </div>
+            <div class="col">
+              <div class="d-flex">
+                <div class="me-3">
+                  <span class="badge rounded-pill bg-primary p-2">
+                    <i class="fas fa-calendar-week fa-lg"></i>
+                  </span>
+                </div>
+                <div>
+                  <h5 class="fs-6">Payroll Calculation</h5>
+                  <p class="small text-muted mb-0">Attendance records are automatically created for all active employees.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Date Range Validator Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 5">
+  <div id="validationToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-danger text-white">
+      <i class="fas fa-exclamation-circle me-2"></i>
+      <strong class="me-auto">Validation Error</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body" id="validationMessage">
+      Please check your date range.
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loading-overlay" style="display: none;">
+  <div class="loading-wrapper">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;"></div>
+    <h4 class="text-white mt-3">Processing...</h4>
+  </div>
+</div>
+
+<style>
+  /* Loading overlay styles */
+  #loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .loading-wrapper {
+    text-align: center;
+  }
+  
+  /* Page header styles */
+  .page-header-content {
+    animation: slideInLeft 0.5s ease;
+  }
+  
+  .payroll-icon {
+    animation: pulse 2s infinite;
+  }
+  
+  /* Card hover effects */
+  .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1) !important;
+  }
+  
+  /* Table row hover effects */
+  .period-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .period-row:hover {
+    background-color: rgba(13, 110, 253, 0.05);
+  }
+  
+  /* Empty state styling */
+  .empty-state {
+    padding: 2rem 0;
+    text-align: center;
+  }
+  
+  /* Animations */
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  @keyframes pulse {
+    0% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 0.6;
+      transform: scale(1);
+    }
+  }
+  
+  /* Status badge styles */
+  .badge {
+    font-weight: 500;
+    padding: 0.5em 0.75em;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
+    const form = document.getElementById('periodForm');
+    const startDate = document.getElementById('sal_period_from');
+    const endDate = document.getElementById('sal_period_to');
+    const validationToast = new bootstrap.Toast(document.getElementById('validationToast'));
+    
+    form.addEventListener('submit', function(event) {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      } else if (startDate.value && endDate.value) {
+        // Check if dates are valid
+        const start = new Date(startDate.value);
+        const end = new Date(endDate.value);
+        
+        if (start > end) {
+          event.preventDefault();
+          document.getElementById('validationMessage').textContent = "Start date cannot be later than end date.";
+          validationToast.show();
+          return;
+        }
+        
+        const diffTime = Math.abs(end - start);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        
+        if (diffDays > 31) {
+          event.preventDefault();
+          document.getElementById('validationMessage').textContent = "Payroll period cannot exceed 31 days.";
+          validationToast.show();
+          return;
+        }
+        
+        // Show loading overlay
+        document.getElementById('loading-overlay').style.display = 'flex';
+      }
+      
+      form.classList.add('was-validated');
+    });
+    
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+    
+    // Table row click handler
+    const periodRows = document.querySelectorAll('.period-row');
+    periodRows.forEach(row => {
+      row.addEventListener('click', function() {
+        const periodId = this.getAttribute('data-period-id');
+        // You could add functionality here to show period details
+        console.log(`Period ${periodId} clicked`);
+      });
+    });
+    
+    // Auto-dismiss alerts after 5 seconds
+    const alerts = document.querySelectorAll('.alert');
+    alerts.forEach(alert => {
+      setTimeout(() => {
+        const bsAlert = new bootstrap.Alert(alert);
+        bsAlert.close();
+      }, 5000);
+    });
+  });
+</script>
+{% endblock %}

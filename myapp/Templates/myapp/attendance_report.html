@@ -1,0 +1,449 @@
+{% extends 'myapp/index.html' %}
+{% load static %}
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card main-card">
+                <div class="card-header">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-calendar-alt me-3"></i>
+                        <h4 class="card-title mb-0">Attendance Report Generator</h4>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="POST" id="attendanceForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="sal_period_id" class="form-label">
+                                        <i class="fas fa-calendar-check me-2"></i>Select Salary Period:
+                                    </label>
+                                    <select name="sal_period_id" id="sal_period_id" class="form-select" required>
+                                        <option value="">-- Select Period --</option>
+                                        {% for p in periods %}
+                                            <option value="{{ p.0 }}">{{ p.1 }} {{ p.2 }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Select the salary period for which you want to generate the attendance report.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="info-box">
+                                    <div class="info-icon">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <div class="info-content">
+                                        <h6>Report Features</h6>
+                                        <ul class="feature-list">
+                                            <li><i class="fas fa-check text-success"></i> Employee attendance tracking</li>
+                                            <li><i class="fas fa-check text-success"></i> Daily status overview</li>
+                                            <li><i class="fas fa-check text-success"></i> Summary statistics</li>
+                                            <li><i class="fas fa-check text-success"></i> Professional PDF format</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Period Details Section (Initially Hidden) -->
+                        <div id="periodDetails" class="mb-4" style="display: none;">
+                            <div class="alert alert-info period-info">
+                                <div class="row align-items-center">
+                                    <div class="col-md-1">
+                                        <i class="fas fa-info-circle fa-2x text-primary"></i>
+                                    </div>
+                                    <div class="col-md-11">
+                                        <h6 class="mb-3">
+                                            <i class="fas fa-calendar-alt me-2"></i>Period Information:
+                                        </h6>
+                                        <div class="row">
+                                            <div class="col-md-3">
+                                                <div class="detail-item">
+                                                    <strong><i class="fas fa-play-circle text-success me-1"></i>From:</strong>
+                                                    <span id="periodFrom" class="detail-value">-</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="detail-item">
+                                                    <strong><i class="fas fa-stop-circle text-danger me-1"></i>To:</strong>
+                                                    <span id="periodTo" class="detail-value">-</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="detail-item">
+                                                    <strong><i class="fas fa-calendar-day text-warning me-1"></i>Days:</strong>
+                                                    <span id="periodDays" class="detail-value">-</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div class="detail-item">
+                                                    <strong><i class="fas fa-flag text-info me-1"></i>Status:</strong>
+                                                    <span id="periodStatus" class="detail-value badge">-</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <br> </br>
+                        </div>
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg generate-btn">
+                                <i class="fas fa-file-pdf me-2"></i> Generate Attendance Report
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary mb-3" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <h5>Generating Report...</h5>
+                <p class="text-muted mb-0">Please wait while we prepare your attendance report.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// JavaScript to show period details when period is selected
+document.getElementById('sal_period_id').addEventListener('change', function() {
+    const selectedValue = this.value;
+    const periodDetails = document.getElementById('periodDetails');
+    
+    if (selectedValue) {
+        // Show the period details section
+        periodDetails.style.display = 'block';
+        periodDetails.style.opacity = '0';
+        setTimeout(() => {
+            periodDetails.style.opacity = '1';
+        }, 100);
+        
+        // Fetch period details via AJAX
+        fetch(`/get-period-details/${selectedValue}/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Format dates for display
+                    const formatDate = (dateStr) => {
+                        if (!dateStr || dateStr === 'None' || dateStr === 'null' || dateStr === 'N/A') return 'N/A';
+                        try {
+                            const date = new Date(dateStr);
+                            if (isNaN(date.getTime())) return 'N/A';
+                            return date.toLocaleDateString('en-GB', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                            });
+                        } catch (e) {
+                            return 'N/A';
+                        }
+                    };
+                    
+                    // Update period details with server data
+                    document.getElementById('periodFrom').textContent = formatDate(data.period_from) || 'N/A';
+                    document.getElementById('periodTo').textContent = formatDate(data.period_to) || 'N/A';
+                    document.getElementById('periodDays').textContent = data.days_count || 'N/A';
+                    
+                    // Update status with appropriate badge class
+                    const statusElement = document.getElementById('periodStatus');
+                    const statusValue = data.status || 'N/A';
+                    statusElement.textContent = statusValue;
+                    statusElement.className = 'detail-value badge ' + (
+                        statusValue === 'A' || statusValue === 'Active' ? 'bg-success' : 
+                        statusValue === 'I' || statusValue === 'Inactive' ? 'bg-warning' : 
+                        'bg-secondary'
+                    );
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching period details:', error);
+                // Show error message or fallback data
+                document.getElementById('periodFrom').textContent = 'Error loading';
+                document.getElementById('periodTo').textContent = 'Error loading';
+                document.getElementById('periodDays').textContent = 'Error loading';
+                document.getElementById('periodStatus').textContent = 'Error loading';
+            });
+    } else {
+        periodDetails.style.display = 'none';
+    }
+});
+
+// Handle form submission with loading modal
+document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+    const selectedPeriod = document.getElementById('sal_period_id').value;
+    if (!selectedPeriod) {
+        e.preventDefault();
+        alert('Please select a salary period.');
+        return;
+    }
+    
+    // Show loading message
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating Report...';
+    submitBtn.disabled = true;
+    
+    // Re-enable button after 5 seconds (in case of any issues)
+    setTimeout(() => {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }, 5000);
+});
+
+// Add some interactive effects
+document.querySelectorAll('.form-select').forEach(select => {
+    select.addEventListener('focus', function() {
+        this.parentElement.classList.add('focused');
+    });
+    
+    select.addEventListener('blur', function() {
+        this.parentElement.classList.remove('focused');
+    });
+});
+</script>
+
+<style>
+:root {
+    --primary-color: #007bff;
+    --secondary-color: #6c757d;
+    --success-color: #28a745;
+    --info-color: #17a2b8;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+}
+
+.main-card {
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.main-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    color: white;
+    border-bottom: none;
+    padding: 20px 25px;
+}
+
+.card-body {
+    padding: 30px;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: 8px;
+}
+
+.form-select {
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    padding: 12px 20px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background-color: white;
+}
+
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    transform: scale(1.02);
+}
+
+.focused {
+    transform: scale(1.01);
+}
+
+.form-text {
+    font-size: 14px;
+    color: var(--secondary-color);
+    margin-top: 5px;
+}
+
+.info-box {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    border-radius: 15px;
+    padding: 20px;
+    height: 100%;
+    border: 1px solid #dee2e6;
+}
+
+.info-icon {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.info-icon i {
+    font-size: 2.5rem;
+    color: var(--primary-color);
+}
+
+.info-content h6 {
+    color: var(--dark-color);
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.feature-list li {
+    padding: 5px 0;
+    font-size: 14px;
+    color: var(--secondary-color);
+}
+
+.period-info {
+    background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+    border: 1px solid var(--info-color);
+    border-radius: 15px;
+    padding: 20px;
+    transition: opacity 0.3s ease;
+}
+
+.detail-item {
+    margin-bottom: 10px;
+}
+
+.detail-item strong {
+    display: block;
+    font-size: 14px;
+    margin-bottom: 5px;
+}
+
+.detail-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-color);
+}
+
+.generate-btn {
+    background: linear-gradient(135deg, var(--success-color), #20c997);
+    border: none;
+    padding: 15px 40px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-radius: 50px;
+    transition: all 0.3s ease;
+    box-shadow: 0 5px 15px rgba(40, 167, 69, 0.3);
+}
+
+.generate-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(40, 167, 69, 0.4);
+    background: linear-gradient(135deg, #218838, #1e7e34);
+}
+
+.generate-btn:active {
+    transform: translateY(-1px);
+}
+
+.container {
+    max-width: 1200px;
+}
+
+/* Loading Modal Styles */
+.modal-content {
+    border-radius: 15px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .card-body {
+        padding: 20px;
+    }
+    
+    .info-box {
+        margin-top: 20px;
+    }
+    
+    .generate-btn {
+        padding: 12px 30px;
+        font-size: 14px;
+    }
+    
+    .detail-item {
+        margin-bottom: 15px;
+    }
+}
+
+/* Animation Classes */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.period-info {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Enhanced Focus States */
+.form-select:focus,
+.btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #0056b3;
+}
+</style>
+{% endblock %}

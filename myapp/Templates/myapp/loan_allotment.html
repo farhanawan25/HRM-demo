@@ -1,0 +1,278 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+    <script>
+        function calculateEndDate() {
+            var startDate = document.getElementById("start_date").value;
+            var repayMonths = document.getElementById("repay_duration").value;
+    
+            if (startDate && repayMonths) {
+                var start = new Date(startDate);
+                start.setMonth(start.getMonth() + parseInt(repayMonths));
+                var endDate = start.toISOString().split('T')[0];
+                document.getElementById("end_date").value = endDate;
+            }
+        }
+    
+        function calculateRepayMonths() {
+            var loanAmount = parseFloat(document.getElementById("loan_amount").value);
+            var monthlyPay = parseFloat(document.getElementById("monthly_pay").value);
+    
+            if (loanAmount && monthlyPay) {
+                var monthsDecimal = loanAmount / monthlyPay;
+                var totalMonths = Math.floor(monthsDecimal); // Full months
+                var lastMonthAdjustment = loanAmount - (totalMonths * monthlyPay); // Remaining amount
+    
+                if (totalMonths >= 24) {
+                    alert("Repayment period cannot exceed 24 months.");
+                    document.getElementById("monthly_pay").value = "";
+                    document.getElementById("last_month_adjustment").value = "";
+                } else {
+                    document.getElementById("repay_duration").value = totalMonths + (lastMonthAdjustment > 0 ? 1 : 0);
+                    document.getElementById("last_month_adjustment").value = lastMonthAdjustment.toFixed(2);
+                    calculateEndDate();
+                }
+            }
+        }
+    
+        function calculateMonthlyPay() {
+            var loanAmount = parseFloat(document.getElementById("loan_amount").value);
+            var repayMonths = parseInt(document.getElementById("repay_duration").value);
+    
+            if (loanAmount && repayMonths) {
+                var monthlyPay = Math.floor(loanAmount / repayMonths); // Base amount
+                var lastMonthAdjustment = loanAmount - (monthlyPay * (repayMonths - 1)); // Remaining amount for last month
+    
+                document.getElementById("monthly_pay").value = monthlyPay.toFixed(2);
+                document.getElementById("last_month_adjustment").value = lastMonthAdjustment.toFixed(2);
+            }
+        }
+
+        function validateLoanAmount() {
+            var loanAmount = parseFloat(document.getElementById("loan_amount").value);
+            var maxLoanLimit = parseFloat("{{ employee.loan_limit }}"); // Assuming this is passed from the backend
+
+            if (loanAmount > maxLoanLimit) {
+                alert("⚠ Loan amount exceeds the maximum limit of " + maxLoanLimit);
+                document.getElementById("loan_amount").value = ""; // Clear the input
+            }
+        }
+        function toggleRepayFields(option) {
+    document.getElementById('repay_duration').disabled = option !== 'duration';
+    document.getElementById('monthly_pay').disabled = option !== 'monthly';
+}
+    
+        function checkExistingLoan() {
+            var hasLoan = "{{ has_existing_loan }}";  
+            if (hasLoan === "True") {
+                alert("⚠ Employee has already been allotted a loan and cannot avail another one.");
+            }
+        }
+
+        function filterEmployees() {
+            const empNo = document.getElementById('emp_no').value;
+            const employeeList = document.getElementById('employee-list');
+
+            if (empNo.length > 0) {
+                fetch(`/search-employees/?term=${empNo}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        employeeList.innerHTML = ''; // Clear previous results
+                        if (data.length > 0) {
+                            data.forEach(employee => {
+                                const item = document.createElement('a');
+                                item.className = 'list-group-item list-group-item-action';
+                                item.href = '#'; // You can set this to a specific URL if needed
+                                item.textContent = `${employee.name} (ID: ${employee.id})`; // Use 'name' and 'id' as keys
+                                item.onclick = function() {
+                                    document.getElementById('emp_no').value = employee.id; // Set the input value
+                                    employeeList.style.display = 'none'; // Hide the list
+                                };
+                                employeeList.appendChild(item);
+                            });
+                            employeeList.style.display = 'block'; // Show the list
+                        } else {
+                            employeeList.style.display = 'none'; // Hide if no results
+                        }
+                    });
+            } else {
+                employeeList.style.display = 'none'; // Hide if input is empty
+            }
+        }
+
+        window.onload = function () {
+            checkExistingLoan();
+        };
+    </script>
+
+<div class="container my-4">
+
+        <style>
+            .header {
+                background-color: #148dff; /* Light Gray Background */
+                color: #ffffffcb; /* Dark Gray Text */
+                font-weight: bold;
+                text-align: center;
+                padding: 20px;
+                font-size: 24px;
+                border-radius: 8px;
+                box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.217);
+            }
+        
+            .header h1 {
+                margin: 0;
+                letter-spacing: 1px;
+                font-size: 26px;
+            }
+        </style>
+        
+        <div class="header">
+            <h1 class="mb-0" style="color: white;">Loan Allotment Entry</h1>
+        </div>
+        
+<!-- Employee Search Form -->
+<div class="card shadow-sm p-4">
+    <form method="GET" action="{% url 'loan_allotment' %}" class="d-flex justify-content-center">
+        <div class="input-group" style="max-width: 400px; position: relative; width: 100%;">
+            <input type="text" class="form-control rounded-start" 
+                   id="emp_no" name="emp_no" 
+                   placeholder="Enter Employee ID" 
+                   required 
+                   value="{{ request.GET.emp_no|default:'' }}" 
+                   onkeyup="filterEmployees()" 
+                   style="border-top-right-radius: 0; border-bottom-right-radius: 0;">
+            
+            <button type="submit" class="btn btn-primary rounded-end" 
+                    style="border-top-left-radius: 0; border-bottom-left-radius: 0;">
+                Search
+            </button>
+
+            <!-- Dropdown with scroll and frame styling -->
+            <div id="employee-list" class="list-group" style="
+                position: absolute; 
+                top: 100%; 
+                left: 0; 
+                width: calc(100% - 100px); 
+                max-height: 200px; 
+                overflow-y: auto; 
+                border: 1px solid #dee2e6; 
+                border-radius: 0.375rem; 
+                background-color: #fff; 
+                box-shadow: 0 4px 8px rgba(0,0,0,0.05); 
+                z-index: 1000;
+            "></div>
+        </div>
+    </form>
+</div>
+
+        {% if employee %}
+        <!-- Employee Details Table -->
+<div class="card mt-4 shadow border-0" style="border-radius: 10px; overflow: hidden; background-color: #f0f8ff;">
+    <!-- Header -->
+    <div class="card-header text-white text-center" style="
+        background: linear-gradient(135deg, #ffb811ac, #ffb811);
+        font-weight: 600;
+        font-size: 22px;
+        letter-spacing: 0.5px;
+        padding: 18px 15px;
+        box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);">
+        Employee Details
+    </div>
+
+    <!-- Body -->
+    <div class="card-body" style="padding: 20px;">
+        <table class="table table-hover">
+            <tr>
+                <th>Name</th>
+                <td class="fw-semibold">{{ employee.emp_name }}</td>
+            </tr>
+            <tr>
+                <th>Department</th>
+                <td class="fw-semibold">{{ employee.deptt_desc }}</td>
+            </tr>
+            <tr>
+                <th class>Joining Date</th>
+                <td class="fw-semibold">{{ employee.emp_join_dt }}</td>
+            </tr>
+            <tr>
+                <th>Exit Date</th>
+                <td class="fw-semibold">{{ employee.emp_exp_dt }}</td>
+            </tr>
+            <tr>
+                <th>Leaving Date</th>
+                <td class="fw-semibold">{{ employee.emp_leaving_dt }}</td>
+            </tr>
+            <tr>
+                <th>Max Loan Limit</th>
+                <td class="fw-semibold">{{ max_loan_limit }}</td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<!-- Loan Entry Form -->
+<div class="card mt-4 shadow-lg p-4" style="background-color: #f0f8ff; border-radius: 12px;">
+    <h4 class="text-center mb-4 fw-bold" style="color: #000;">Loan Entry Form</h4>
+
+    <form method="POST" class="row g-4">
+        {% csrf_token %}
+
+        <div class="col-lg-6 col-md-6">
+            <label for="loan_amount" class="form-label fw-semibold text-black">Loan Amount <small>(Max: {{ max_loan_limit }})</small></label>
+            <input type="number" class="form-control border border-primary rounded-3 shadow-sm" name="loan_amount" id="loan_amount" required onblur="validateLoanAmount()">
+        </div>
+
+        <div class="col-lg-6 col-md-6">
+            <label class="form-label fw-semibold text-black">Repayment Option <small>(Select One)</small></label>
+
+            <!-- Months Option -->
+            <div class="d-flex align-items-center mb-2">
+                <div class="form-check me-3">
+                    <input type="radio" class="form-check-input border border-dark" style="transform: scale(1.2);" name="repay_option" value="duration" onclick="toggleRepayFields('duration')">
+                    <label class="form-check-label text-black">Months <small>( Max:  {{ calculated_months }} )</small></label>
+                </div>
+                <input type="number" class="form-control border border-primary rounded-3 shadow-sm w-50" name="repay_duration" id="repay_duration" max="24" disabled onblur="calculateEndDate(); calculateMonthlyPay();">
+            </div>
+
+            <!-- Monthly Option -->
+            <div class="d-flex align-items-center">
+                <div class="form-check me-3">
+                    <input type="radio" class="form-check-input border border-dark" style="transform: scale(1.2);" name="repay_option" value="monthly" onclick="toggleRepayFields('monthly')">
+                    <label class="form-check-label text-black">Monthly Amount</label>
+                </div>
+                <input type="number" class="form-control border border-primary rounded-3 shadow-sm w-50" name="monthly_pay" id="monthly_pay" disabled onblur="calculateRepayMonths()">
+            </div>
+        </div>
+
+        <div class="col-lg-6 col-md-6">
+            <label for="start_date" class="form-label fw-semibold text-black">Loan Start Date</label>
+            <input type="date" class="form-control border border-primary rounded-3 shadow-sm" name="start_date" id="start_date" required onchange="calculateEndDate()">
+        </div>
+
+        <div class="col-lg-6 col-md-6">
+            <label for="end_date" class="form-label fw-semibold text-black">Loan End Date</label>
+            <input type="date" class="form-control border border-secondary rounded-3 shadow-sm" name="end_date" id="end_date" readonly>
+        </div>
+
+        <div class="col-lg-6 col-md-6">
+            <label for="last_month_adjustment" class="form-label fw-semibold text-black">Last Month Adjustment</label>
+            <input type="text" class="form-control border border-secondary rounded-3 shadow-sm" name="last_month_adjustment" id="last_month_adjustment" readonly>
+        </div>
+
+        <div class="col-12 d-flex justify-content-center mt-4">
+            <button type="submit" class="btn btn-primary px-4 py-2 mx-2 shadow-sm rounded-3">Process Loan</button>
+            <button type="reset" class="btn btn-dark px-4 py-2 mx-2 shadow-sm rounded-3">Reset</button>
+        </div>
+    </form>
+</div>
+
+<div class="container mt-6 d-flex justify-content-center align-items-center" style="min-height: 10vh;">
+    <!-- Back Button -->
+    <a href="{% url 'dashboard'%}" class="btn btn-outline-secondary mb-4 shadow-sm">
+        ← Back to Homepage
+    </a>
+</div>
+        {% endif %}
+
+        
+{% endblock %}

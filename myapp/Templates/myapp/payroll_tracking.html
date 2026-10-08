@@ -1,0 +1,498 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+
+<div>
+    <h2 class="mb-1 text-dark fw-bold fs-4 fs-md-3 ms-5">
+        <i class="fas fa-money-check-alt me-2 text-primary"></i>
+        Payroll Tracking System
+    </h2>
+</div>
+
+<div class="container-fluid mt-4 px-3 px-md-4">
+
+    <!-- Period Dropdown Form -->
+    <form method="get" class="mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light border-0">
+                <label for="periodSelect" class="form-label fw-bold mb-0">
+                    <i class="fas fa-calendar-alt me-2 text-primary"></i>
+                    Select Payroll Period
+                </label>
+            </div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-12 col-md-9 col-lg-10">
+                        <select name="period_id" id="periodSelect" class="form-select form-select-lg shadow-sm" required>
+                            <option value="">-- Choose Period --</option>
+                            {% for period in period_list %}
+                                <option value="{{ period.id }}" {% if period.id|stringformat:"s" == selected_period_id %}selected{% endif %}>
+                                    {{ period.id }} - {{ period.month|date:"F Y" }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3 col-lg-2">
+                        <button type="submit" class="btn btn-primary btn-lg w-100 shadow-sm">
+                            <i class="fas fa-search me-2"></i>View
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    {% if sal_period %}
+        <!-- Period Details -->
+        <div class="card mb-4 shadow border-0">
+            <div class="card-header bg-gradient-primary text-white fw-bold">
+                <i class="fas fa-info-circle me-2"></i>
+                Payroll Period Details
+            </div>
+            <div class="card-body bg-light">
+                <div class="row g-3">
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="info-item">
+                            <strong class="text-muted">Period ID:</strong>
+                            <span class="badge bg-secondary ms-2">{{ sal_period.id }}</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="info-item">
+                            <strong class="text-muted">Month:</strong>
+                            <span class="ms-2">{{ sal_period.month|date:"F Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="info-item">
+                            <strong class="text-muted">Days Count:</strong>
+                            <span class="badge bg-info ms-2">{{ sal_period.dayscount }}</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="info-item">
+                            <strong class="text-muted">From:</strong>
+                            <span class="ms-2">{{ sal_period.date_from|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="info-item">
+                            <strong class="text-muted">To:</strong>
+                            <span class="ms-2">{{ sal_period.date_to|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-sm-6 col-lg-4">
+                        <div class="info-item">
+                            <strong class="text-muted">Status:</strong>
+                            {% if sal_period.status == 'I' %}
+                                <span class="badge bg-warning text-dark ms-2">
+                                    <i class="fas fa-paper-plane me-1"></i>
+                                    Initiated & Submitted for HR Approval
+                                </span>
+                                {% elif sal_period.status  == 'N' %}
+                                    <span class="badge bg-primary">
+                                     <i class="fas fa-cogs me-1"></i>
+                                        New
+                                    </span>
+                            {% elif sal_period.status == 'P' %}
+                                <span class="badge bg-primary ms-2">
+                                    <i class="fas fa-cogs me-1"></i>
+                                    Processed
+                                </span>
+                            {% elif sal_period.status == 'V' %}
+                                <span class="badge bg-info ms-2">
+                                    <i class="fas fa-user-check me-1"></i>
+                                    Approved by HR
+                                </span>
+                            {% elif sal_period.status == 'F' %}
+                                <span class="badge bg-success ms-2">
+                                    <i class="fas fa-dollar-sign me-1"></i>
+                                    Approved by Finance
+                                </span>
+                            {% elif sal_period.status == 'Z' %}
+                                <span class="badge bg-dark ms-2">
+                                    <i class="fas fa-crown me-1"></i>
+                                    Approved by CEO
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary ms-2">{{ sal_period.status }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pay Track History -->
+        <div class="card shadow border-0">
+            <div class="card-header bg-gradient-primary text-white fw-bold">
+                <i class="fas fa-history me-2"></i>
+                Payroll Tracking History
+                {% if pay_tracks %}
+                    <span class="badge bg-light text-dark ms-2">{{ pay_tracks|length }} records</span>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                {% if pay_tracks %}
+                    <!-- Desktop Table View -->
+                    <div class="d-none d-lg-block">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover table-bordered align-middle text-center mb-0">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th><i class="fas fa-flag me-1"></i>Action</th>
+                                        <th><i class="fas fa-clock me-1"></i>Date & Time</th>
+                                        <th><i class="fas fa-user me-1"></i>Action By</th>
+                                        <th><i class="fas fa-arrow-right me-1"></i>Forwarded To</th>
+                                        <th><i class="fas fa-comment me-1"></i>Remarks</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for track in pay_tracks %}
+                                        <tr class="track-row">
+                                            <td>
+                                                {% if track.flag == 'I' %}
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-paper-plane me-1"></i>
+                                                       Submitted for Finance Approval
+                                                    </span>
+                                                    {% elif track.flag == 'N' %}
+                                                    <span class="badge bg-primary">
+                                                        <i class="fas fa-cogs me-1"></i>
+                                                        New
+                                                    </span>
+                                                {% elif track.flag == 'P' %}
+                                                    <span class="badge bg-primary">
+                                                        <i class="fas fa-cogs me-1"></i>
+                                                        Processed
+                                                    </span>
+                                                {% elif track.flag == 'V' %}
+                                                    <span class="badge bg-primary">
+                                                        <i class="fas fa-user-check me-1"></i>
+                                                        Approved by Finance
+                                                    </span>
+                                                {% elif track.flag == 'F' %}
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-dollar-sign me-1"></i>
+                                                        Approved by CEO
+                                                    </span>
+                                                {% elif track.flag == 'Z' %}
+                                                    <span class="badge bg-dark">
+                                                        <i class="fas fa-crown me-1"></i>
+                                                        In progress
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ track.flag }}</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <div class="datetime-display">
+                                                    <div class="fw-bold">{{ track.flag_dt|date:"M d, Y" }}</div>
+                                                    <small class="text-muted">{{ track.flag_dt|date:"H:i" }}</small>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="user-display">
+                                                    <i class="fas fa-user-circle me-1 text-primary"></i>
+                                                    {{ track.action_by|default:"N/A" }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="user-display">
+                                                    <i class="fas fa-user-arrow-right me-1 text-success"></i>
+                                                    {{ track.forwarded_to|default:"N/A" }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="remarks-cell">
+                                                    {% if track.remarks %}
+                                                        <i class="fas fa-comment-dots me-1 text-info"></i>
+                                                        <small>{{ track.remarks }}</small>
+                                                    {% else %}
+                                                        <span class="text-muted"><i class="fas fa-minus"></i> No remarks</span>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Card View -->
+                    <div class="d-lg-none">
+                        {% for track in pay_tracks %}
+                            <div class="mobile-track-card border-bottom p-3 {% if not forloop.last %}border-1{% endif %}">
+                                <div class="row g-2">
+                                    <div class="col-12">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div class="action-badge">
+                                                {% if track.flag == 'N' %}
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-paper-plane me-1"></i>
+                                                        New
+                                                    </span>
+                                                    {% elif track.flag == 'I' %}
+                                                    <span class="badge bg-primary">
+                                                        <i class="fas fa-cogs me-1"></i>
+                                                        Submitted For Approval
+                                                    </span>
+                                                {% elif track.flag == 'P' %}
+                                                    <span class="badge bg-primary">
+                                                        <i class="fas fa-cogs me-1"></i>
+                                                        Processed
+                                                    </span>
+                                                {% elif track.flag == 'V' %}
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-user-check me-1"></i>
+                                                        HR Approved
+                                                    </span>
+                                                {% elif track.flag == 'F' %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-dollar-sign me-1"></i>
+                                                        Finance Approved
+                                                    </span>
+                                                {% elif track.flag == 'Z' %}
+                                                    <span class="badge bg-dark">
+                                                        <i class="fas fa-crown me-1"></i>
+                                                        CEO Approved
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ track.flag }}</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="datetime-mobile text-end">
+                                                <div class="fw-bold text-primary">{{ track.flag_dt|date:"M d, Y" }}</div>
+                                                <small class="text-muted">{{ track.flag_dt|date:"H:i" }}</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="info-block">
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-user me-1"></i>Action By:
+                                            </small>
+                                            <span class="fw-medium">{{ track.action_by|default:"N/A" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="info-block">
+                                            <small class="text-muted d-block">
+                                                <i class="fas fa-arrow-right me-1"></i>Forwarded To:
+                                            </small>
+                                            <span class="fw-medium">{{ track.forwarded_to|default:"N/A" }}</span>
+                                        </div>
+                                    </div>
+                                    {% if track.remarks %}
+                                        <div class="col-12 mt-2">
+                                            <div class="remarks-mobile bg-light p-2 rounded">
+                                                <small class="text-muted d-block">
+                                                    <i class="fas fa-comment-dots me-1"></i>Remarks:
+                                                </small>
+                                                <small class="text-break">{{ track.remarks }}</small>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state p-5 text-center">
+                        <div class="text-muted">
+                            <i class="fas fa-search fa-3x mb-3 text-secondary"></i>
+                            <h5 class="mb-2">No Tracking History Found</h5>
+                            <p class="mb-0">No tracking records are available for this payroll period.</p>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+
+    <!-- Back Button -->
+    <div class="d-grid d-sm-block mt-4 mb-4">
+        <a href="{% url 'dashboard' %}" class="btn btn-outline-primary btn-lg shadow-sm">
+            <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<style>
+/* Enhanced Custom Styles */
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.info-item {
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    transition: background-color 0.2s ease;
+}
+
+.info-item:hover {
+    background-color: rgba(0, 123, 255, 0.1);
+}
+
+.track-row {
+    transition: all 0.2s ease;
+}
+
+.track-row:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.datetime-display {
+    min-width: 100px;
+}
+
+.user-display {
+    white-space: nowrap;
+}
+
+.remarks-cell {
+    max-width: 250px;
+    word-wrap: break-word;
+}
+
+.mobile-track-card {
+    transition: background-color 0.2s ease;
+}
+
+.mobile-track-card:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.action-badge .badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+}
+
+.datetime-mobile {
+    min-width: 80px;
+}
+
+.info-block {
+    margin-bottom: 0.5rem;
+}
+
+.remarks-mobile {
+    border-left: 3px solid #007bff;
+}
+
+.empty-state {
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 0.5rem;
+    margin: 1rem;
+}
+
+/* Responsive improvements */
+@media (max-width: 576px) {
+    .container-fluid {
+        padding-left: 10px !important;
+        padding-right: 10px !important;
+    }
+    
+    .card-body {
+        padding: 1rem !important;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .form-label {
+        font-size: 0.95rem;
+    }
+    
+    .action-badge .badge {
+        font-size: 0.7rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .card-header {
+        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
+    }
+    
+    .btn {
+        font-size: 0.9rem;
+    }
+    
+    .datetime-mobile {
+        font-size: 0.85rem;
+    }
+}
+
+/* Enhanced text wrapping */
+.text-break {
+    word-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+}
+
+/* Mobile table improvements */
+@media (max-width: 991px) {
+    .table-responsive {
+        border: none;
+    }
+    
+    .table-responsive table {
+        font-size: 0.85rem;
+    }
+    
+    .mobile-track-card {
+        margin: 0 0.5rem;
+        border-radius: 0.5rem;
+    }
+    
+    .mobile-track-card:not(:last-child) {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Animation for status badges */
+.badge {
+    transition: all 0.2s ease;
+}
+
+.badge:hover {
+    transform: scale(1.05);
+}
+
+/* Improved card shadows */
+.card {
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Form enhancements */
+.form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.2);
+}
+</style>
+{% endblock %}

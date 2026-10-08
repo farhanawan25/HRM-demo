@@ -1,0 +1,985 @@
+{% extends "myapp/index.html" %}
+{% load static %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% block content %}
+
+<div class="container-fluid px-4 py-3">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="text-primary fw-bold mb-0">
+            <i class="fas fa-calculator me-2"></i>Payroll Recommendation - HR
+        </h2>
+        <small class="text-muted">Salary Period Management</small>
+    </div>
+
+    <!-- Period Selection Form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-calendar-alt me-2"></i>Period Selection
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Select Active Period:</label>
+                    <select name="period_id" class="form-select" onchange="this.form.submit()" required
+                            {% if show_no_pending_popup %}disabled{% endif %}>
+                        <option value="">-- Select Active Period --</option>
+                        {% for period in active_periods %}
+                            <option value="{{ period.0 }}" 
+                                {% if selected_period_id|stringformat:"s" == period.0|stringformat:"s" %}selected{% endif %}>
+                                {{ period.1 }} - Period {{ period.0 }} 
+                                ({{ period.2|default:"N/A" }}) - {{ period.3 }} to {{ period.4 }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if selected_period_id %}
+                <div class="col-md-6 d-flex align-items-end">
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.location.reload()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    {% if selected_period_id %}
+    <!-- Period Details Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>Period Details
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-2">
+                    <strong>Period ID:</strong><br>
+                    <span class="badge bg-secondary fs-6">{{ period_info.id }}</span>
+                </div>
+                <div class="col-md-2">
+                    <strong>Month:</strong><br>
+                    <span class="text-primary fw-bold">{{ period_info.month }}</span>
+                </div>
+                <div class="col-md-2">
+                    <strong>Days:</strong><br>
+                    <span class="badge bg-info">{{ period_info.days }}</span>
+                </div>
+                <div class="col-md-2">
+                    <strong>From:</strong><br>
+                    <small class="text-muted">{{ period_info.from }}</small>
+                </div>
+                <div class="col-md-2">
+                    <strong>To:</strong><br>
+                    <small class="text-muted">{{ period_info.to }}</small>
+                </div>
+                <div class="col-md-2">
+                    <strong>Status:</strong><br>
+                    {% if period_info.status == 'NEW' %}
+                        <span class="badge bg-warning">{{ period_info.status }}</span>
+                    {% elif period_info.status == 'INITIATED' %}
+                        <span class="badge bg-success">{{ period_info.status }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ period_info.status }}</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payroll Summary Table -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-table me-2"></i>Zone-wise Payroll Summary
+            </h5>
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>
+                Current vs Previous Period Comparison
+            </small>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="table-primary">
+                        <tr class="text-center">
+                            <th rowspan="2" class="align-middle border-end">Zone</th>
+                            <th rowspan="2" class="align-middle border-end">Staff Type</th>
+                            <th colspan="4" class="border-end">Previous Period</th>
+                            <th colspan="4" class="border-end">Current Period</th>
+                            <th colspan="4">Difference (Current - Previous)</th>
+                        </tr>
+                        <tr class="text-center">
+                            <!-- Previous Period -->
+                            <th class="border-end">Staff</th>
+                            <th class="border-end">Gross</th>
+                            <th class="border-end">Deductions</th>
+                            <th class="border-end">Net</th>
+                            <!-- Current Period -->
+                            <th class="border-end">Staff</th>
+                            <th class="border-end">Gross</th>
+                            <th class="border-end">Deductions</th>
+                            <th class="border-end">Net</th>
+                            <!-- Differences -->
+                            <th class="border-end">Staff</th>
+                            <th class="border-end">Gross</th>
+                            <th class="border-end">Deductions</th>
+                            <th>Net</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in summary_data %}
+                        <tr>
+                            <td class="fw-bold border-end">{{ row.zone }}</td>
+                            <td class="border-end">
+                                <span class="badge bg-secondary">{{ row.staff_type }}</span>
+                            </td>
+                            
+                            <!-- Previous Period Data -->
+                            <td class="text-center border-end">{{ row.previous.tot_staff }}</td>
+                            <td class="text-end border-end">{{ row.previous.gross_salary|floatformat:"2" }}</td>
+                            <td class="text-end border-end">{{ row.previous.deductions|floatformat:"2" }}</td>
+                            <td class="text-end border-end">{{ row.previous.net_salary|floatformat:"2" }}</td>
+                            
+                            <!-- Current Period Data -->
+                            <td class="text-center border-end">{{ row.current.tot_staff }}</td>
+                            <td class="text-end border-end">{{ row.current.gross_salary|floatformat:"2" }}</td>
+                            <td class="text-end border-end">{{ row.current.deductions|floatformat:"2" }}</td>
+                            <td class="text-end border-end">{{ row.current.net_salary|floatformat:"2" }}</td>
+                            
+                            <!-- Differences -->
+                            <td class="text-center border-end">
+                                {% if row.differences.tot_staff > 0 %}
+                                    +{{ row.differences.tot_staff }}
+                                {% elif row.differences.tot_staff < 0 %}
+                                    {{ row.differences.tot_staff }}
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </td>
+                            <td class="text-end border-end">
+                                {% if row.differences.gross_salary > 0 %}
+                                    +{{ row.differences.gross_salary|floatformat:"2" }}
+                                {% elif row.differences.gross_salary < 0 %}
+                                    {{ row.differences.gross_salary|floatformat:"2" }}
+                                {% else %}
+                                    0.00
+                                {% endif %}
+                            </td>
+                            <td class="text-end border-end">
+                                {% if row.differences.deductions > 0 %}
+                                    +{{ row.differences.deductions|floatformat:"2" }}
+                                {% elif row.differences.deductions < 0 %}
+                                    {{ row.differences.deductions|floatformat:"2" }}
+                                {% else %}
+                                    0.00
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if row.differences.net_salary > 0 %}
+                                    +{{ row.differences.net_salary|floatformat:"2" }}
+                                {% elif row.differences.net_salary < 0 %}
+                                    {{ row.differences.net_salary|floatformat:"2" }}
+                                {% else %}
+                                    0.00
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="14" class="text-center text-muted py-4">
+                                <i class="fas fa-info-circle me-2"></i>No payroll data available for this period.
+                                <br><small>Please check if payroll has been calculated for this period.</small>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if summary_data %}
+                    <tfoot class="table-light">
+                        <tr class="fw-bold text-end">
+                        <td colspan="2" class="text-center border-end">TOTALS</td>
+
+                     <!-- Previous Period Totals -->
+                        <td class="text-center border-end">{{ totals.prev_staff }}</td>
+                        <td class="text-end border-end">{{ totals.prev_gross|floatformat:"2" }}</td>
+                        <td class="text-end border-end">{{ totals.prev_deductions|floatformat:"2" }}</td>
+                        <td class="text-end border-end">{{ totals.prev_net|floatformat:"2" }}</td>
+
+                    <!-- Current Period Totals -->
+                        <td class="text-center border-end">{{ totals.curr_staff }}</td>
+                        <td class="text-end border-end">{{ totals.curr_gross|floatformat:"2" }}</td>
+                        <td class="text-end border-end">{{ totals.curr_deductions|floatformat:"2" }}</td>
+                        <td class="text-end border-end">{{ totals.curr_net|floatformat:"2" }}</td>
+
+                    <!-- Differences Totals -->
+                        <td class="text-center border-end">{{ totals.diff_staff }}</td>
+                        <td class="text-end border-end">{{ totals.diff_gross|floatformat:"2" }}</td>
+                        <td class="text-end border-end">{{ totals.diff_deductions|floatformat:"2" }}</td>
+                        <td class="text-end">{{ totals.diff_net|floatformat:"2" }}</td>
+                    </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+
+    <!--Table Data Chart -->
+ 
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">
+            <i class="fas fa-chart-pie me-2"></i>Payroll Differences Visualization
+        </h5>
+        <small class="text-muted">Current vs Previous Period Comparison (as of {{ request.timestamp|date:"D, M d, Y, H:i A" }})</small>
+    </div>
+    <div class="card-body">
+        {% if summary_data %}
+        <div class="row">
+            <div class="col-md-8">
+                <canvas id="payrollBarChart" style="max-height: 400px;"></canvas>
+            </div>
+            <div class="col-md-4">
+                <canvas id="payrollPieChart" style="max-height: 400px;"></canvas>
+            </div>
+        </div>
+        <div class="mt-3 text-muted small">
+            <p><strong>Note:</strong> Bar chart shows differences in Gross Salary, Deductions, and Net Salary per zone. Pie chart reflects the distribution of net salary changes.</p>
+        </div>
+        {% else %}
+        <div class="alert alert-warning text-center">
+            No data available for chart visualization. Please ensure payroll data exists for the selected period.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+    <!-- Remarks Section -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-comment-alt me-2"></i>Remarks & Actions
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="payrollActionForm" method="post" action="{% url 'payroll_recommendation_action' %}">
+                {% csrf_token %}
+                <input type="hidden" name="period_id" value="{{ selected_period_id }}">
+                <input type="hidden" name="action_type" id="actionType">
+                
+                <div class="mb-4">
+                    <label class="form-label fw-semibold" for="remarks">
+                        Remarks <span class="text-danger">*</span>
+                        <small class="text-muted">(Required for Recommend, Approve, and Return actions)</small>
+                    </label>
+                    <textarea id="remarks" name="remarks" class="form-control" rows="4" 
+                              placeholder="Enter your remarks here. This will be saved with the action and visible in audit trails..."
+                              maxlength="500">{{ remarks }}</textarea>
+                    <div class="form-text">
+                        <span id="charCount">0</span>/500 characters
+                    </div>
+                </div>
+                
+                <!-- Action Status Display -->
+                {% if period_info.status %}
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Current Status:</strong> {{ period_info.status }}
+                    {% if period_info.status == 'NEW' %}
+                        - Ready for recommendation
+                    {% elif period_info.status == 'INITIATED' %}
+                        - Payroll has been recommended and is pending approval
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                <!-- Action Buttons Grid -->
+                <div class="d-flex flex-wrap gap-3 mb-4">
+                    <button type="button" class="btn btn-outline-info py-3 flex-fill"
+                            {% if not buttons_enabled.employee_amends %}disabled{% endif %}
+                            onclick="employeeAmends()"
+                            title="{% if not buttons_enabled.employee_amends %}Not available for current period status{% else %}Make employee amendments{% endif %}">
+                        <i class="fas fa-user-edit me-2"></i>Employee Amends
+                    </button>
+                    <button type="button" class="btn btn-outline-info py-3 flex-fill"
+                            {% if not buttons_enabled.overtime_details %}disabled{% endif %}
+                            onclick="overtimeDetails()"
+                            title="{% if not buttons_enabled.overtime_details %}Not available for current period status{% else %}View overtime details{% endif %}">
+                        <i class="fas fa-clock me-2"></i>Overtime Details
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary py-3 flex-fill"
+                            onclick="payrollHistory()"
+                            title="View payroll history">
+                        <i class="fas fa-history me-2"></i>Payroll History
+                    </button>
+                    <button type="button" class="btn btn-warning py-3 flex-fill"
+                            {% if not buttons_enabled.return %}disabled{% endif %}
+                            onclick="returnPayroll()"
+                            title="{% if not buttons_enabled.return %}Not available for current period status{% else %}Return for corrections{% endif %}">
+                        <i class="fas fa-undo me-2"></i>Return Payroll
+                    </button>
+                    <button type="button" class="btn btn-outline-primary py-3 flex-fill"
+                            {% if not buttons_enabled.pay_report %}disabled{% endif %}
+                            onclick="preRunPayroll()"
+                            title="{% if not buttons_enabled.pay_report %}Not available for current period status{% else %}Pre-run payroll{% endif %}">
+                        <i class="fas fa-play me-2"></i>Pre-Run Payroll
+                    </button>
+                    <button type="button" class="btn btn-success py-3 flex-fill"
+                            {% if not buttons_enabled.recommend %}disabled{% endif %}
+                            onclick="recommendPayroll()"
+                            title="{% if not buttons_enabled.recommend %}Not available for current period status{% else %}Recommend payroll for approval{% endif %}">
+                        <i class="fas fa-thumbs-up me-2"></i>Recommend
+                    </button>
+                </div>
+
+                <!-- Action Guide -->
+                <div class="mt-4">
+                    <div class="alert alert-light">
+                        <h6><i class="fas fa-lightbulb me-2"></i>Action Guide:</h6>
+                        <ul class="mb-0 small">
+                            <li><strong>Employee Amends & Overtime:</strong> Available for NEW periods to make adjustments.</li>
+                            <li><strong>Payroll History:</strong> View current status and history of the salary period.</li>
+                            <li><strong>Return:</strong> Available for INITIATED periods. Returns payroll to NEW status for corrections.</li>
+                            <li><strong>Pre-Run Payroll:</strong> Test run before final recommendation.</li>
+                            <li><strong>Recommend:</strong> Available for NEW periods. Submits payroll for management approval.</li>
+                        </ul>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-3 mb-1 fw-semibold">Processing Action...</p>
+                <p class="mb-0 small text-muted">Please wait</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Modal -->
+<div class="modal fade" id="confirmModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmModalTitle">
+                    <i class="fas fa-question-circle me-2"></i>Confirm Action
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="confirmModalMessage">Are you sure you want to proceed?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Note:</strong> This action will be recorded in the audit trail and cannot be easily undone.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmActionBtn">
+                    <i class="fas fa-check me-1"></i>Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- No Pending Records Modal -->
+<div class="modal fade" id="noPendingModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-circle me-2"></i>No Pending Records
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>No pending records found for HR approval for the selected period.</p>
+                <p class="text-muted">The selected period has already been processed. Please select a NEW or INITIATED period to proceed.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                    <i class="fas fa-check me-1"></i>OK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+
+    
+/* Custom styles remain unchanged */
+.table th {
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.table td {
+    font-size: 0.9rem;
+}
+
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+/* Period status badges */
+.badge {
+    font-size: 0.75rem;
+}
+
+/* Disabled button styling */
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* Button styling for consistent size */
+.btn.py-3 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+    font-weight: 500;
+}
+
+/* Disabled select styling */
+.form-select:disabled {
+    background-color: #e9ecef;
+    cursor: not-allowed;
+}
+</style>
+<style>
+/* General Card Styles */
+.card {
+    border-radius: 0.5rem;
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: scale(1.02);
+}
+
+/* Header Styles */
+.card-header {
+    background: linear-gradient(90deg, #007bff, #0056b3);
+    color: white !important;
+    font-weight: bold;
+}
+
+.card-header h5,
+.card-header small,
+.card-header .fas,
+.card-header .me-2 {
+    color: white !important;
+}
+
+/* Table Styles */
+.table th {
+    font-size: 0.9rem;
+    font-weight: 600;
+    background-color: #f8f9fa;
+}
+
+.table td {
+    font-size: 0.9rem;
+}
+
+/* Badge Styles */
+.badge {
+    font-size: 0.75rem;
+}
+
+/* Button Styles */
+.btn {
+    border-radius: 0.25rem;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.btn:hover {
+    background-color: #0056b3;
+    color: white;
+}
+
+/* Disabled Button Styles */
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Responsive Table */
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+/* Remarks Section */
+textarea {
+    border-radius: 0.25rem;
+}
+</style>
+
+<script>
+let pendingAction = null;
+
+// Show no pending records modal if needed
+document.addEventListener('DOMContentLoaded', function() {
+    if (showNoPendingPopup) {
+        const noPendingModal = new bootstrap.Modal(document.getElementById('noPendingModal'));
+        noPendingModal.show();
+    }
+
+    const remarksField = document.getElementById('remarks');
+    const charCount = document.getElementById('charCount');
+    
+    function updateCharCount() {
+        const count = remarksField.value.length;
+        charCount.textContent = count;
+        charCount.className = count > 450 ? 'text-warning fw-bold' : count > 500 ? 'text-danger fw-bold' : '';
+    }
+    
+    remarksField.addEventListener('input', updateCharCount);
+    updateCharCount(); // Initial count
+});
+
+// submitAction function
+function submitAction(action) {
+    const form = document.getElementById('payrollActionForm');
+    const actionInput = document.getElementById('actionType');
+    
+    actionInput.value = action;
+    
+    // Show loading modal
+    const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+    loadingModal.show();
+    
+    // Submit form via AJAX
+    const formData = new FormData(form);
+    
+    // Add debugging
+    console.log('Submitting action:', action);
+    console.log('Form data:', Object.fromEntries(formData));
+    
+    const actionUrl = form.getAttribute('action');
+    console.log('Action URL:', actionUrl);
+    
+    fetch(actionUrl, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        loadingModal.hide();
+        
+        if (data.success) {
+            // Show success message
+            const successDiv = document.createElement('div');
+            successDiv.className = 'alert alert-success alert-dismissible fade show';
+            successDiv.innerHTML = `
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>Success!</strong> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.container-fluid');
+            container.insertAdjacentElement('afterbegin', successDiv);
+            
+            // Scroll to top to show the message
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            
+            // Clear remarks after successful action
+            document.getElementById('remarks').value = '';
+            
+            // Reload page after 2 seconds
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            // Show error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+            errorDiv.innerHTML = `
+                <i class="fas fa-exclamation-circle me-2"></i>
+                <strong>Error!</strong> ${data.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            const container = document.querySelector('.container-fluid');
+            container.insertAdjacentElement('afterbegin', errorDiv);
+            
+            // Scroll to top to show the message
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    })
+    .catch(error => {
+        console.error('Fetch error:', error);
+        loadingModal.hide();
+        
+        // Show network error
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'alert alert-danger alert-dismissible fade show';
+        errorDiv.innerHTML = `
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Network Error!</strong> Unable to process request. Please check your connection and try again.
+            <br><small>Error details: ${error.message}</small>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.querySelector('.container-fluid');
+        container.insertAdjacentElement('afterbegin', errorDiv);
+        
+        // Scroll to top to show the message
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+}
+
+function employeeAmends() {
+    const periodId = document.querySelector('input[name="period_id"]').value;
+    window.location.href = `/payroll/employee-amends/?period_id=${periodId}`;
+}
+
+function overtimeDetails() {
+    const periodId = document.querySelector('input[name="period_id"]').value;
+    window.location.href = `/payroll/overtime-details/?period_id=${periodId}`;
+}
+
+function payrollHistory() {
+    const periodId = document.querySelector('input[name="period_id"]').value;
+    window.location.href = `/payroll/history/?period_id=${periodId}`;
+}
+
+function preRunPayroll() {
+    const periodId = document.querySelector('input[name="period_id"]').value;
+    window.location.href = `/payroll/pre-run/?period_id=${periodId}`;
+}
+
+function validateAction(action) {
+    const remarks = document.getElementById('remarks').value.trim();
+    
+    if (['recommend', 'approve', 'return'].includes(action) && !remarks) {
+        showValidationError('Remarks are required for this action. Please enter remarks before proceeding.');
+        return false;
+    }
+    
+    if (remarks.length > 500) {
+        showValidationError('Remarks cannot exceed 500 characters.');
+        return false;
+    }
+    
+    return true;
+}
+
+function showValidationError(message) {
+    const existingErrors = document.querySelectorAll('.validation-error-alert');
+    existingErrors.forEach(error => error.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'alert alert-warning alert-dismissible fade show validation-error-alert';
+    alertDiv.innerHTML = `
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Validation Error!</strong> ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const remarksCard = document.getElementById('remarks').closest('.card');
+    remarksCard.insertAdjacentElement('beforebegin', alertDiv);
+    
+    document.getElementById('remarks').focus();
+    document.getElementById('remarks').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+
+function recommendPayroll() {
+    if (!validateAction('recommend')) {
+        return;
+    }
+    
+    showConfirmModal(
+        'Recommend Payroll',
+        'Are you sure you want to recommend this payroll for approval?<br><br>This will change the period status to <strong>INITIATED</strong> and submit it for management approval.',
+        'recommend'
+    );
+}
+
+function returnPayroll() {
+    if (!validateAction('return')) {
+        return;
+    }
+    
+    showConfirmModal(
+        'Return Payroll',
+        'Are you sure you want to return this payroll for corrections?<br><br>This will change the period status back to <strong>NEW</strong> and allow modifications.',
+        'return'
+    );
+}
+
+function showConfirmModal(title, message, action) {
+    if (!validateAction(action)) {
+        return;
+    }
+    
+    document.getElementById('confirmModalTitle').innerHTML = `<i class="fas fa-question-circle me-2"></i>${title}`;
+    document.getElementById('confirmModalMessage').innerHTML = message;
+    
+    const remarks = document.getElementById('remarks').value.trim();
+    if (remarks) {
+        const remarksPreview = document.createElement('div');
+        remarksPreview.className = 'mt-3 p-2 bg-light rounded';
+        remarksPreview.innerHTML = `
+            <small class="text-muted"><strong>Remarks:</strong></small><br>
+            <small>${remarks}</small>
+        `;
+        document.getElementById('confirmModalMessage').appendChild(remarksPreview);
+    }
+    
+    pendingAction = action;
+    
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    confirmModal.show();
+}
+
+document.getElementById('confirmActionBtn').addEventListener('click', function() {
+    if (pendingAction && validateAction(pendingAction)) {
+        const confirmModal = bootstrap.Modal.getInstance(document.getElementById('confirmModal'));
+        confirmModal.hide();
+        
+        submitAction(pendingAction);
+        pendingAction = null;
+    }
+});
+
+
+
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const summary = JSON.parse(document.getElementById('summaryData').textContent);
+
+    const labels = summary.map(row => `${row.zone} (${row.staff_type})`);
+    const grossDiffs = summary.map(row => row.differences.gross_salary);
+    const dedDiffs = summary.map(row => row.differences.deductions);
+    const netDiffs = summary.map(row => row.differences.net_salary);
+
+    // ----- Bar Chart -----
+    const barCtx = document.getElementById('barChart').getContext('2d');
+    new Chart(barCtx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Gross Difference',
+                    data: grossDiffs,
+                    backgroundColor: 'rgba(54, 162, 235, 0.7)'
+                },
+                {
+                    label: 'Deductions Difference',
+                    data: dedDiffs,
+                    backgroundColor: 'rgba(255, 206, 86, 0.7)'
+                },
+                {
+                    label: 'Net Difference',
+                    data: netDiffs,
+                    backgroundColor: 'rgba(75, 192, 192, 0.7)'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                title: {
+                    display: true,
+                    text: 'Zone-wise Payroll Differences'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Amount (PKR)' }
+                }
+            }
+        }
+    });
+
+    // ----- Pie Chart for Net Differences -----
+    const pieLabels = [];
+    const pieData = [];
+    const pieColors = [];
+
+    summary.forEach(row => {
+        const net = row.differences.net_salary;
+        if (net !== 0) {
+            pieLabels.push(`${row.zone} (${row.staff_type})`);
+            pieData.push(Math.abs(net));
+            pieColors.push(net > 0 ? 'rgba(40, 167, 69, 0.8)' : 'rgba(220, 53, 69, 0.8)');
+        }
+    });
+
+    const pieCtx = document.getElementById('pieChart').getContext('2d');
+    new Chart(pieCtx, {
+        type: 'pie',
+        data: {
+            labels: pieLabels,
+            datasets: [{
+                data: pieData,
+                backgroundColor: pieColors
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: {
+                    display: true,
+                    text: 'Net Difference Distribution by Zone'
+                }
+            }
+        }
+    });
+});
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const summaryData = JSON.parse(document.getElementById('summaryData').textContent || '[]');
+
+    if (summaryData.length > 0) {
+        // Prepare data for bar chart (differences across zones)
+        const labels = summaryData.map(item => item.zone);
+        const grossDiff = summaryData.map(item => item.differences.gross_salary || 0);
+        const dedDiff = summaryData.map(item => item.differences.deductions || 0);
+        const netDiff = summaryData.map(item => item.differences.net_salary || 0);
+
+        // Bar Chart
+        const barCtx = document.getElementById('payrollBarChart').getContext('2d');
+        if (barCtx) {
+            new Chart(barCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Gross Salary Difference',
+                            data: grossDiff,
+                            backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Deductions Difference',
+                            data: dedDiff,
+                            backgroundColor: 'rgba(255, 99, 132, 0.6)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Net Salary Difference',
+                            data: netDiff,
+                            backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Zones' } },
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Difference Amount (PKR)' },
+                            ticks: { callback: value => `${value.toLocaleString()} PKR` }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                        title: { display: true, text: 'Zone-wise Payroll Differences' }
+                    }
+                }
+            });
+        } else {
+            console.error('Bar chart canvas not found');
+        }
+
+        // Prepare data for pie chart (change distribution)
+        const changes = summaryData.map(item => item.differences.net_salary || 0);
+        const positiveChanges = changes.filter(v => v > 0).reduce((sum, v) => sum + 1, 0);
+        const negativeChanges = changes.filter(v => v < 0).reduce((sum, v) => sum + 1, 0);
+        const noChanges = changes.filter(v => v === 0).reduce((sum, v) => sum + 1, 0);
+        const totalChanges = positiveChanges + negativeChanges + noChanges;
+
+        // Pie Chart
+        const pieCtx = document.getElementById('payrollPieChart').getContext('2d');
+        if (pieCtx) {
+            new Chart(pieCtx, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        `Positive Changes (${((positiveChanges / totalChanges * 100) || 0).toFixed(1)}%)`,
+                        `Negative Changes (${((negativeChanges / totalChanges * 100) || 0).toFixed(1)}%)`,
+                        `No Change (${((noChanges / totalChanges * 100) || 0).toFixed(1)}%)`
+                    ],
+                    datasets: [{
+                        data: [positiveChanges, negativeChanges, noChanges],
+                        backgroundColor: ['#4BC0C0', '#FF6384', '#36A2EB'],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        title: { display: true, text: 'Net Salary Change Distribution' }
+                    }
+                }
+            });
+        } else {
+            console.error('Pie chart canvas not found');
+        }
+    } else {
+        console.log('No summary data available for charting');
+    }
+});
+</script>
+
+{{ summary_data|json_script:"summaryData" }}
+
+{% endblock %}
+

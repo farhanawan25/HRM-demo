@@ -1,0 +1,426 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+
+<style>
+/* Add button hover effect */
+.custom-add-btn {
+    background-color: #132df2;
+    border: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.custom-add-btn:hover {
+    background-color:  #132df2; /* keep original orange */
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+/* Table header styling */
+.table thead {
+    background-color: #000000;
+    color: #ffffff;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+/* Modal backdrop with blur effect */
+.modal-backdrop {
+    backdrop-filter: blur(3px);
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* Modal content styling */
+.modal-content {
+    border-radius: 10px;
+    border: none;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    background-color: #fda343;
+    color: white;
+    border-radius: 10px 10px 0 0;
+}
+</style>
+
+<div>
+    <h2 class="mb-1 text-dark fw-bold fs-4 fs-md-3">
+        <i class="fas fa-money-check-alt me-2 text-primary"></i>
+        Employee Pay Allowances
+    </h2>
+</div>
+
+<div class="container mt-4" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+    <!-- Employee Type Card -->
+    <div class="card shadow border-0 rounded-4 mb-4" style="background-color: #e7f3fe;">
+        <div class="card-header border-bottom d-flex align-items-center" style="background-color: #4d7aff; color: white;">
+            <h5 class="mb-0 fw-semibold" style="color:#fffbe6">Employee Type</h5>
+        </div>
+        <div class="card-body">
+            <div class="border rounded-3 p-3 shadow-sm" style="background-color: #fffbe6;">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <p class="mb-0 fw-semibold text-dark">
+                            Employee Type: {{ employee_type_id }} {{ employee_type_name }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Allowance Table Card -->
+    <div class="card shadow border-0 rounded-4" style="background-color: #e7f3fe;">
+        <div class="card-header border-bottom d-flex align-items-center justify-content-between" style="background-color: #4d7aff; color: white;">
+            <div class="d-flex align-items-center">
+                <h5 class="mb-0 fw-semibold" style="color:#fffbe6">Allowances</h5>
+            </div>
+            <button class="btn btn-sm rounded-pill px-3 text-white fw-semibold custom-add-btn" data-bs-toggle="modal" data-bs-target="#addAllowanceModal">
+                <i class="bi bi-plus-lg me-1"></i> Add
+            </button>
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-bordered table-hover align-middle">
+                    <thead class="text-center">
+                        <tr class="small">
+                            <th>ID</th>
+                            <th>Allowance</th>
+                            <th>Rate Calc. Mode</th>
+                            <th>Earning / Deduction / Fund?</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allowances-table-body">
+                        {% for allw in allowances %}
+                        <tr>
+                            <td class="text-center">
+                                <span class="badge bg-secondary bg-opacity-10 text-dark fw-medium">{{ allw.id }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-medium">{{ allw.desc }}</span>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm border-light">
+                                    {% for key, value in rate_mode_choices.items %}
+                                        <option value="{{ key }}" {% if key == allw.rate_mode %}selected{% endif %}>
+                                    {{ value }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm border-light">
+                                    {% for key, value in earn_deduc_choices.items %}
+                                        <option value="{{ key }}" {% if key == allw.earning_type %}selected{% endif %}>
+                                            {{ value }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td>
+                                <select class="form-select form-select-sm border-light {% if allw.status == 'active' %}bg-success bg-opacity-10{% else %}bg-danger bg-opacity-10{% endif %}">
+                                    {% for key, value in status_choices.items %}
+                                        <option value="{{ key }}" {% if key == allw.status %}selected{% endif %}>
+                                            {{ value }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr id="no-allowances-row">
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                                <p class="mb-0">No allowances found.</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Allowance Modal -->
+<div class="modal fade" id="addAllowanceModal" tabindex="-1" aria-labelledby="addAllowanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-semibold" id="addAllowanceModalLabel">Add New Allowance</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAllowanceForm">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="allowance-id" class="form-label fw-medium">Allowance ID</label>
+                        <input type="text" class="form-control" id="allowance-id" readonly>
+                        <small class="text-muted">ID will be auto-generated</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="allowance-desc" class="form-label fw-medium">Allowance Description</label>
+                        <input type="text" class="form-control" id="allowance-desc" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="allowance-type" class="form-label fw-medium">Rate Calculation Mode</label>
+                        <select class="form-select" id="allowance-type" required>
+                            <option value="" selected disabled>Select Rate Calc. Mode</option>
+                            <option value="F">PRESENT RATE</option>
+                            <option value="V">PREVAILING RATE</option>
+                            <option value="P">EMPLOYER PENSION</option>
+                            <option value="E">EMPLOYER PENSION</option>
+                            <option value="R">RUNTIME VALUE</option>
+                            <option value="D">RUNTIME DAILY RUNTIME</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="allowance-earn-deduc" class="form-label fw-medium">Earning / Deduction / Fund</label>
+                        <select class="form-select" id="allowance-earn-deduc" required>
+                            <option value="" selected disabled>Select Type</option>
+                            <option value="-1">DEDUCTION</option>
+                            <option value="0">EMPLOYER FUND</option>
+                            <option value="1">EARNING</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="allowance-status" class="form-label fw-medium">Status</label>
+                        <select class="form-select" id="allowance-status" required>
+                            <option value="" selected disabled>Select Status</option>
+                            <option value="A">ACTIVE</option>
+                            <option value="I">INACTIVE</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn text-white fw-semibold" style="background-color: #f29913;" id="saveAllowanceBtn">Save Allowance</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
+    <div id="successToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-check-circle me-2"></i>
+                <span id="toastMessage">Allowance added successfully!</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+    
+    <div id="errorToast" class="toast align-items-center text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <span id="errorMessage">Error adding allowance.</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get the maximum allowance ID
+    const maxAllowanceId = getMaxAllowanceId();
+    document.getElementById('allowance-id').value = maxAllowanceId + 1;
+    
+    // Handle allowance type change to map ALLW_SALTYP
+    const allowanceTypeSelect = document.getElementById('allowance-type');
+    allowanceTypeSelect.addEventListener('change', function() {
+        // This will be used when saving the allowance
+        console.log('Selected allowance type:', this.value);
+    });
+    
+    // Save allowance button handler
+    document.getElementById('saveAllowanceBtn').addEventListener('click', function() {
+        saveAllowance();
+    });
+    
+    // Initialize toasts
+    const toastElList = [].slice.call(document.querySelectorAll('.toast'));
+    toastElList.map(function(toastEl) {
+        return new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 5000
+        });
+    });
+});
+
+// Function to get the maximum allowance ID from the table
+function getMaxAllowanceId() {
+    let maxId = 0;
+    const allwIds = document.querySelectorAll('#allowances-table-body tr td:first-child .badge');
+    
+    allwIds.forEach(badge => {
+        const id = parseInt(badge.textContent);
+        if (id > maxId) {
+            maxId = id;
+        }
+    });
+    
+    return maxId;
+}
+
+// Function to show toast notification
+function showToast(type, message) {
+    const toast = document.getElementById(type + 'Toast');
+    document.getElementById(type === 'success' ? 'toastMessage' : 'errorMessage').textContent = message;
+    const bsToast = bootstrap.Toast.getInstance(toast) || new bootstrap.Toast(toast);
+    bsToast.show();
+}
+
+// Function to add new row to the table
+function addRowToTable(allowanceData) {
+    const tableBody = document.getElementById('allowances-table-body');
+    
+    // Remove "no allowances found" row if it exists
+    const noAllowancesRow = document.getElementById('no-allowances-row');
+    if (noAllowancesRow) {
+        noAllowancesRow.remove();
+    }
+    
+    // Get display values
+    const typeDisplay = document.querySelector(`#allowance-type option[value="${allowanceData.type}"]`).textContent;
+    const earnDeducDisplay = document.querySelector(`#allowance-earn-deduc option[value="${allowanceData.earnDeduc}"]`).textContent;
+    const statusDisplay = document.querySelector(`#allowance-status option[value="${allowanceData.status}"]`).textContent;
+    
+    // Create and add the new row
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td class="text-center">
+            <span class="badge bg-secondary bg-opacity-10 text-dark fw-medium">${allowanceData.id}</span>
+        </td>
+        <td>
+            <span class="fw-medium">${allowanceData.desc}</span>
+        </td>
+        <td>
+            <select class="form-select form-select-sm border-light">
+                <option value="${allowanceData.type}" selected>${typeDisplay}</option>
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm border-light">
+                <option value="${allowanceData.earnDeduc}" selected>${earnDeducDisplay}</option>
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm border-light ${allowanceData.status === 'A' ? 'bg-success bg-opacity-10' : 'bg-danger bg-opacity-10'}">
+                <option value="${allowanceData.status}" selected>${statusDisplay}</option>
+            </select>
+        </td>
+    `;
+    
+    tableBody.appendChild(newRow);
+}
+
+// Function to save the new allowance
+function saveAllowance() {
+    const form = document.getElementById('addAllowanceForm');
+    
+    // Basic form validation
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    // Get form values
+    const allowanceId = parseInt(document.getElementById('allowance-id').value);
+    const allowanceDesc = document.getElementById('allowance-desc').value;
+    const allowanceType = document.getElementById('allowance-type').value;
+    const allowanceEarnDeduc = parseInt(document.getElementById('allowance-earn-deduc').value);
+    const allowanceStatus = document.getElementById('allowance-status').value;
+    
+    // Determine the correct ALLW_SALTYP based on ALLW_TYP
+    let allwSaltyp = 0;
+    if (['D', 'F', 'R', 'V'].includes(allowanceType)) {
+        allwSaltyp = 1;
+    } else if (allowanceType === 'P') {
+        allwSaltyp = 2;
+    } else if (allowanceType === 'E') {
+        allwSaltyp = 3;
+    } else if (allowanceType === 'F') {
+        // Additional mapping for F value - since multiple values map to F
+        // Choose the appropriate one based on context or defaults to 4
+        allwSaltyp = 4;
+    }
+    
+    // Prepare data using the names from the original backend function
+    const allowanceData = {
+        id: allowanceId,
+        desc: allowanceDesc,
+        type: allowanceType,  // Using original field names from the backend
+        saltyp: allwSaltyp,
+        earnDeduc: allowanceEarnDeduc,  // Using original field names from the backend
+        status: allowanceStatus,  // Using original field names from the backend
+        emptyp: 1  // As specified in the requirements
+    };
+    
+    // Show loading state
+    document.getElementById('saveAllowanceBtn').disabled = true;
+    document.getElementById('saveAllowanceBtn').innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+    
+    // Send data to the server
+    fetch('/add-allowance/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify(allowanceData)
+    })
+    .then(response => {
+        // Check if response is ok before trying to parse JSON
+        if (!response.ok) {
+            // Try to get text of the error before rejecting
+            return response.text().then(text => {
+                console.error('Server response text:', text);
+                throw new Error(`Server error: ${response.status} ${response.statusText}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'error') {
+            throw new Error(data.message || 'Server responded with an error');
+        }
+        
+        console.log('Success:', data);
+        
+        // Add the new row to the table
+        addRowToTable(allowanceData);
+        
+        // Show success message
+        showToast('success', data.message || 'Allowance added successfully!');
+        
+        // Close the modal and reset form
+        const modal = bootstrap.Modal.getInstance(document.getElementById('addAllowanceModal'));
+        modal.hide();
+        form.reset();
+        
+        // Update the next ID for future additions
+        document.getElementById('allowance-id').value = allowanceId + 1;
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('error', error.message || 'Failed to add allowance. Please try again.');
+    })
+    .finally(() => {
+        // Reset button state
+        document.getElementById('saveAllowanceBtn').disabled = false;
+        document.getElementById('saveAllowanceBtn').innerHTML = 'Save Allowance';
+    });
+}
+
+</script>
+
+{% endblock %}

@@ -1,0 +1,401 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <!-- Header Card -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-header bg-gradient-primary text-white">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="mb-0" style="color: white;">
+                                <i class="fas fa-chart-line me-2"></i>
+                                Payroll Reports
+                            </h4>
+                        </div>
+                        <div class="col-auto">
+                            <small class="opacity-75">Management Reports</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Period Selection Form -->
+                    <form method="post" class="mb-4">
+                        {% csrf_token %}
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-5">
+                                <label for="sal_period" class="form-label fw-bold text-muted">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    Select Payroll Period
+                                </label>
+                                <select name="sal_period" id="sal_period" class="form-select form-select-lg" required>
+                                    <option value="">-- Choose Period --</option>
+                                    {% for p in periods %}
+                                        <option value="{{ p.0 }}" {% if selected_period and selected_period.0 == p.0 %}selected{% endif %}>
+                                            Period {{ p.0 }} | {{ p.4 }} ({{ p.2 }} days)
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="zone_id" class="form-label fw-bold text-muted">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    Select Zone <span class="text-danger" id="zone-required-indicator" style="display: none;">*</span>
+                                </label>
+                                <select name="zone_id" id="zone_id" class="form-select form-select-lg" {% if not selected_period %}disabled{% endif %}>
+                                    <option value="">-- Choose Zone --</option>
+                                    {% for zone in zones %}
+                                        <option value="{{ zone.0 }}" {% if selected_zone and selected_zone.0 == zone.0 %}selected{% endif %}>
+                                            {{ zone.1 }} - {{ zone.2 }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div class="col-md-2">
+                                <button type="submit" class="btn btn-primary btn-lg w-100">
+                                    <i class="fas fa-search me-1"></i>
+                                    Load Period
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Selected Period Details -->
+                    {% if selected_period %}
+                    <div class="alert alert-info border-0 shadow-sm mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <i class="fas fa-hashtag text-primary fs-4"></i>
+                                    <div class="fw-bold">Period ID</div>
+                                    <div class="text-muted">{{ selected_period.0 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <i class="fas fa-calendar text-success fs-4"></i>
+                                    <div class="fw-bold">Month</div>
+                                    <div class="text-muted">{{ selected_period.4 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <i class="fas fa-clock text-warning fs-4"></i>
+                                    <div class="fw-bold">Days</div>
+                                    <div class="text-muted">{{ selected_period.2 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <i class="fas fa-play text-info fs-4"></i>
+                                    <div class="fw-bold">From</div>
+                                    <div class="text-muted">{{ selected_period.3 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <i class="fas fa-stop text-danger fs-4"></i>
+                                    <div class="fw-bold">To</div>
+                                    <div class="text-muted">{{ selected_period.4 }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="text-center">
+                                    <i class="fas fa-flag text-secondary fs-4"></i>
+                                    <div class="fw-bold">Status</div>
+                                    <div class="text-muted">
+                                        {% if selected_period.5 == 'P' %}
+                                            <span class="badge bg-success">Processed</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">In Progress</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% if selected_zone %}
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <div class="text-center">
+                                    <i class="fas fa-map-marker-alt text-primary fs-4"></i>
+                                    <div class="fw-bold">Selected Zone</div>
+                                    <div class="text-muted">{{ selected_zone.1 }} - {{ selected_zone.2 }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Reports Grid -->
+            {% if selected_period %}
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>
+                        Available Reports
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for btn in report_buttons %}
+                        <div class="col-lg-3 col-md-4 col-sm-6">
+                            <div class="card h-100 shadow-sm report-card" style="cursor: pointer; transition: all 0.3s ease;">
+                                <div class="card-body text-center p-3">
+                                    <div class="mb-3">
+                                        <i class="{{ btn.icon }} text-{{ btn.color }}" style="font-size: 2rem;"></i>
+                                    </div>
+                                    <h6 class="card-title mb-2">{{ btn.name }}</h6>
+                                    {% if btn.requires_zone %}
+                                        <small class="text-muted d-block mb-2">
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            Zone Required
+                                        </small>
+                                    {% endif %}
+                                    <button type="button" 
+                                            class="btn btn-outline-{{ btn.color }} btn-sm w-100 report-btn" 
+                                            data-report-name="{{ btn.name|escapejs }}" 
+                                            data-period-id="{{ selected_period.0|default:'' }}"
+                                            data-requires-zone="{{ btn.requires_zone|yesno:'true,false' }}">
+                                        <i class="fas fa-play me-1"></i>
+                                        Generate
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="card shadow-lg border-0">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-info-circle text-muted" style="font-size: 4rem;"></i>
+                    <h4 class="mt-3 text-muted">Select a Payroll Period</h4>
+                    <p class="text-muted">Please select a payroll period from the dropdown above to view available reports.</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div class="modal fade" id="loadingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <div class="mt-3">
+                    <h6>Processing Report...</h6>
+                    <small class="text-muted">Please wait while we generate your report.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #5f79eb 0%, #0d27e9ef 100%);
+}
+
+.report-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1) !important;
+}
+
+.card {
+    border-radius: 15px;
+}
+
+.form-select-lg {
+    border-radius: 10px;
+}
+
+.btn {
+    border-radius: 8px;
+}
+
+.alert {
+    border-radius: 12px;
+}
+
+.card-header {
+    border-radius: 15px 15px 0 0 !important;
+}
+
+.zone-required-report {
+    border: 2px solid #ffc107 !important;
+}
+
+.zone-required-report .card-body {
+    background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%);
+}
+</style>
+
+<script>
+    // Define which reports require zone selection
+    const ZONE_REQUIRED_REPORTS = [
+        'Initialized Payroll Report',
+        'Allowance Wise Summary',
+        'Payroll - Excel Overall'
+    ];
+
+    function handleReport(reportName, periodId, requiresZone = true) {
+        // Validate inputs
+        if (!reportName || !periodId) {
+            showAlert('danger', 'Please select a valid period and report.');
+            return;
+        }
+
+        // Check if zone is required and selected
+        const zoneId = document.getElementById('zone_id').value;
+        if (requiresZone && !zoneId) {
+            showAlert('warning', 'Please select a zone for this report.');
+            document.getElementById('zone_id').focus();
+            return;
+        }
+
+        // Show loading modal
+        const loadingModal = new bootstrap.Modal(document.getElementById('loadingModal'));
+        loadingModal.show();
+
+        // Normalize report name
+        const normalizedReportName = reportName.normalize('NFC');
+
+        // Prepare data for AJAX request
+        const data = {
+            report_name: normalizedReportName,
+            period_id: periodId,
+            zone_id: requiresZone ? zoneId : null
+        };
+
+        console.log('Sending report request:', data); // Debug
+
+        fetch('{% url "handle_report_action" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => {
+            loadingModal.hide();
+
+            if (data.success) {
+                showAlert('success', data.message);
+
+                if (data.redirect_url) {
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url;
+                    }, 1500);
+                } else if (data.download_url) {
+                    window.open(data.download_url, '_blank');
+                } else if (data.report_url) {
+                    window.open(data.report_url, '_blank');
+                }
+            } else {
+                showAlert('danger', 'Error: ' + data.error);
+                console.error('Server error:', data);
+            }
+        })
+        .catch(error => {
+            loadingModal.hide();
+            showAlert('danger', 'Network error occurred. Please try again.');
+            console.error('Error:', error);
+        });
+    }
+
+    function showAlert(type, message) {
+        const alertHtml = `
+            <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        `;
+
+        const alertContainer = document.createElement('div');
+        alertContainer.innerHTML = alertHtml;
+        alertContainer.className = 'position-fixed top-0 end-0 p-3';
+        alertContainer.style.zIndex = '9999';
+
+        document.body.appendChild(alertContainer);
+
+        setTimeout(() => {
+            alertContainer.remove();
+        }, 5000);
+    }
+
+    function highlightZoneRequiredReports() {
+        const reportCards = document.querySelectorAll('.report-card');
+        reportCards.forEach(card => {
+            const button = card.querySelector('.report-btn');
+            const reportName = button.getAttribute('data-report-name');
+
+            const requiresZone = ZONE_REQUIRED_REPORTS.includes(reportName);
+            if (requiresZone) {
+                card.classList.add('zone-required-report');
+            } else {
+                card.classList.remove('zone-required-report');
+            }
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const periodSelect = document.getElementById('sal_period');
+        const zoneSelect = document.getElementById('zone_id');
+
+        if (periodSelect.value) {
+            zoneSelect.disabled = false;
+        }
+
+        periodSelect.addEventListener('change', function () {
+            if (this.value) {
+                zoneSelect.disabled = false;
+            } else {
+                zoneSelect.disabled = true;
+                zoneSelect.value = '';
+            }
+        });
+
+        const reportCards = document.querySelectorAll('.report-card');
+        reportCards.forEach(card => {
+            card.addEventListener('mouseenter', function () {
+                this.style.transform = 'translateY(-5px)';
+                this.style.boxShadow = '0 10px 25px rgba(0,0,0,0.15)';
+            });
+
+            card.addEventListener('mouseleave', function () {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '';
+            });
+        });
+
+        const reportButtons = document.querySelectorAll('.report-btn');
+        reportButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const reportName = this.getAttribute('data-report-name');
+                const periodId = this.getAttribute('data-period-id');
+                const requiresZone = ZONE_REQUIRED_REPORTS.includes(reportName); // ✅ Dynamic check
+
+                handleReport(reportName, periodId, requiresZone);
+            });
+        });
+
+        highlightZoneRequiredReports();
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+<h3>Employee Pay Form</h3>
+<form method="post">
+    {% csrf_token %}
+    <label for="emp_name">Employee Name:</label><br>
+    <input type="text" id="emp_name" name="emp_name"><br><br>
+
+    <label for="pay_amount">Pay Amount:</label><br>
+    <input type="number" id="pay_amount" name="pay_amount"><br><br>
+
+    <input type="submit" value="Submit">
+</form>
+{% endblock %}
+
+<script>
+    // Reset the form when the dashboard is loaded
+    window.onload = function() {
+        let form = document.querySelector("form");
+        if (form) {
+            form.reset();  // Reset the form fields
+        }
+    };
+  </script>
+  

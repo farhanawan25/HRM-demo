@@ -1,0 +1,66 @@
+/* Ensure the body takes full height */
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Make the header fixed at the top */
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background-color: #f8f9fa; /* Adjust header color if needed */
+  z-index: 999;
+  padding: 10px 20px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Optional: Adding shadow for clarity */
+}
+
+/* Navbar within the header */
+.navbar {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fff;
+  padding: 10px 20px;
+}
+
+/* Ensure the sidebar stays below the header */
+.sidebar {
+  position: fixed;
+  top: 80px; /* Adjust according to header height */
+  left: 0;
+  width: 250px;
+  height: calc(100vh - 80px); /* Adjust height to take the remaining space */
+  background-color: #343a40;
+  padding-top: 20px;
+  z-index: 1;
+}
+
+/* Content area with space for header and sidebar */
+.content-wrapper {
+  display: flex;
+  margin-left: 250px; /* Sidebar width */
+  margin-top: 80px; /* Leave space for the fixed header */
+}
+
+/* Image container */
+.image-container {
+  width: 100%;
+  padding-top: 20px; /* Optional padding for top space */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Image responsiveness */
+.image-container img {
+  width: 100%;
+  height: auto;
+  max-width: 100%;
+}

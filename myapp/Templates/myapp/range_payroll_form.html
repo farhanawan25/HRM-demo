@@ -1,0 +1,266 @@
+{% extends 'myapp/index.html' %}
+{% load static %}
+
+{% block content %}
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .form-container {
+            padding: 40px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-field {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        input[type="text"] {
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            width: 120px;
+            text-align: center;
+            background-color: #e8f4f8;
+        }
+        
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin-top: 30px;
+        }
+        
+        .generate-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .generate-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .generate-btn:disabled {
+            background-color: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .loading {
+            display: none;
+            color: #3498db;
+            margin-top: 10px;
+        }
+        
+        .error-message {
+            background-color: #e74c3c;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .success-message {
+            background-color: #27ae60;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .help-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>{{ form_title }}</h1>
+        </div>
+        
+        <div class="form-container">
+            <div id="error-message" class="error-message"></div>
+            <div id="success-message" class="success-message"></div>
+            
+            <form id="rangePayrollForm" method="post">
+                {% csrf_token %}
+                
+                <div class="form-row">
+                    <div class="form-field">
+                        <label for="from_month">From Month:</label>
+                        <input type="text" id="from_month" name="from_month" 
+                               placeholder="MMYYYY" maxlength="6" required>
+                        <div class="help-text">Format: MMYYYY (e.g., 012025)</div>
+                    </div>
+                    
+                    <div class="form-field">
+                        <label for="to_month">To Month:</label>
+                        <input type="text" id="to_month" name="to_month" 
+                               placeholder="MMYYYY" maxlength="6" required>
+                        <div class="help-text">Format: MMYYYY (e.g., 032025)</div>
+                    </div>
+                </div>
+                
+                <div class="button-container">
+                    <button type="submit" class="generate-btn" id="generateBtn">
+                        Generate Report
+                    </button>
+                    <div class="loading" id="loading">
+                        Generating report... Please wait.
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('rangePayrollForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const fromMonth = document.getElementById('from_month').value;
+            const toMonth = document.getElementById('to_month').value;
+            const generateBtn = document.getElementById('generateBtn');
+            const loading = document.getElementById('loading');
+            const errorMessage = document.getElementById('error-message');
+            const successMessage = document.getElementById('success-message');
+            
+            // Hide previous messages
+            errorMessage.style.display = 'none';
+            successMessage.style.display = 'none';
+            
+            // Validate input format
+            const monthPattern = /^\d{6}$/;
+            if (!monthPattern.test(fromMonth) || !monthPattern.test(toMonth)) {
+                showError('Please enter valid month format (MMYYYY)');
+                return;
+            }
+            
+            // Validate month range
+            const fromDate = new Date(fromMonth.substring(2), fromMonth.substring(0, 2) - 1);
+            const toDate = new Date(toMonth.substring(2), toMonth.substring(0, 2) - 1);
+            
+            if (fromDate > toDate) {
+                showError('From Month cannot be greater than To Month');
+                return;
+            }
+            
+            // Show loading state
+            generateBtn.disabled = true;
+            loading.style.display = 'block';
+            
+            // Create form data
+            const formData = new FormData(this);
+            
+            // Submit form via AJAX
+            fetch('{% url "generate_range_payroll_report" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showSuccess(data.message);
+                    // Open report in new tab
+                    window.open(data.report_url, '_blank');
+                } else {
+                    showError(data.error);
+                    console.error('Debug info:', data.debug_info);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showError('An error occurred while generating the report');
+            })
+            .finally(() => {
+                generateBtn.disabled = false;
+                loading.style.display = 'none';
+            });
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error-message');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success-message');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+        
+        // Format input as user types
+        document.getElementById('from_month').addEventListener('input', formatMonthInput);
+        document.getElementById('to_month').addEventListener('input', formatMonthInput);
+        
+        function formatMonthInput(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 6) {
+                value = value.substring(0, 6);
+            }
+            e.target.value = value;
+        }
+    </script>
+{% endblock %}

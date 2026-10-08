@@ -1,0 +1,36 @@
+{% extends 'myapp/index.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-lg border-secondary">
+                <div class="card-body text-center">
+                    <!-- Logo -->
+                    <div class="mb-4">
+                        <img src="{% static 'images/wssp_logo.jpg' %}" alt="Logo" height="120">
+                    </div>
+                    
+                    <div class="mb-4 d-flex align-items-center justify-content-center gap-3">
+                         <i class="fas fa-ban fa-2x  mr-3"></i>
+                        <h2 class="font-weight-bold mb-0">Access Denied</h2>
+                    </div>
+
+
+                    <!-- Access Denied Heading -->
+                    
+                    <p class="lead mt-3">You do not have the necessary permissions to view this page.</p>
+                    <p class="text-muted">If you believe this is an error, please contact your administrator or try again later.</p>
+                    <hr>
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-primary btn-lg mt-3">
+                        <i class="fas fa-home"></i> Return to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

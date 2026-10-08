@@ -1,0 +1,426 @@
+{% extends 'myapp/index.html' %}
+{% load static %}
+
+{% block title %}Generate Pay Slip Report{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+            <!-- Display Django messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        <i class="fas fa-{% if message.tags == 'error' %}exclamation-triangle{% elif message.tags == 'success' %}check-circle{% elif message.tags == 'warning' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-file-pdf me-2"></i>
+                        Generate Pay Slip Report
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'generate_payslip_report' %}" id="payslipForm" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="period_id" value="{{ period_id }}">
+                        
+                        <!-- Period Display -->
+                        <div class="mb-4">
+                            <label for="period_display" class="form-label fw-bold">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Selected Period:
+                            </label>
+                            <input type="text" 
+                                   id="period_display" 
+                                   class="form-control bg-light" 
+                                   value="{{ period_id }}" 
+                                   readonly>
+                            <div class="form-text">
+                                <i class="fas fa-info-circle me-1"></i>
+                                This is the payroll period for which the pay slip will be generated.
+                            </div>
+                        </div>
+                        
+                        <!-- Employee ID Input -->
+                        <div class="mb-4">
+                            <label for="employee_id" class="form-label fw-bold">
+                                <i class="fas fa-user me-1"></i>
+                                Employee ID: 
+                                <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="fas fa-id-badge"></i>
+                                </span>
+                                <input type="text" 
+                                       name="employee_id" 
+                                       id="employee_id"
+                                       class="form-control" 
+                                       placeholder="Enter Employee ID (e.g., EMP001)"
+                                       required 
+                                       autocomplete="off"
+                                       maxlength="20"
+                                       value="{{ request.POST.employee_id|default:'' }}">
+                                <button class="btn btn-outline-secondary" 
+                                        type="button" 
+                                        id="clearBtn"
+                                        title="Clear input">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">
+                                <i class="fas fa-lightbulb me-1"></i>
+                                Enter the unique Employee ID for whom you want to generate the pay slip.
+                            </div>
+                            <div id="employee_id_feedback" class="invalid-feedback"></div>
+                            <div id="employee_id_success" class="valid-feedback"></div>
+                        </div>
+                        
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
+                                <i class="fas fa-file-pdf me-2"></i>
+                                Generate Pay Slip
+                            </button>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <a href="{% url 'payroll_reports' %}" class="btn btn-outline-secondary w-100">
+                                        <i class="fas fa-arrow-left me-1"></i>
+                                        Back to Reports
+                                    </a>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-outline-primary w-100" id="resetBtn">
+                                        <i class="fas fa-refresh me-1"></i>
+                                        Reset Form
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Loading Overlay -->
+                <div id="loadingOverlay" class="position-absolute top-0 start-0 w-100 h-100 d-none" 
+                     style="background: rgba(255,255,255,0.9); z-index: 1000;">
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center">
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <div class="h5 text-primary">
+                                <i class="fas fa-cog fa-spin me-2"></i>
+                                Generating Pay Slip...
+                            </div>
+                            <div class="text-muted">
+                                Please wait while we process your request
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Help Section -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Need Help?
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-info-circle text-info me-1"></i> Instructions:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-check text-success me-1"></i> Enter the exact Employee ID</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Employee ID is case-sensitive</li>
+                                <li><i class="fas fa-check text-success me-1"></i> Minimum 2 characters required</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6><i class="fas fa-exclamation-triangle text-warning me-1"></i> Troubleshooting:</h6>
+                            <ul class="list-unstyled small">
+                                <li><i class="fas fa-arrow-right text-muted me-1"></i> Check for typos in Employee ID</li>
+                                <li><i class="fas fa-arrow-right text-muted me-1"></i> Ensure employee exists in system</li>
+                                <li><i class="fas fa-arrow-right text-muted me-1"></i> Contact HR if issues persist</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // DOM elements
+    const form = document.getElementById('payslipForm');
+    const employeeIdInput = document.getElementById('employee_id');
+    const generateBtn = document.getElementById('generateBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const feedback = document.getElementById('employee_id_feedback');
+    const successFeedback = document.getElementById('employee_id_success');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    
+    // Auto-focus on employee ID input
+    employeeIdInput.focus();
+    
+    // Clear button functionality
+    clearBtn.addEventListener('click', function() {
+        employeeIdInput.value = '';
+        employeeIdInput.classList.remove('is-valid', 'is-invalid');
+        feedback.textContent = '';
+        successFeedback.textContent = '';
+        employeeIdInput.focus();
+    });
+    
+    // Reset button functionality
+    resetBtn.addEventListener('click', function() {
+        form.reset();
+        employeeIdInput.classList.remove('is-valid', 'is-invalid');
+        feedback.textContent = '';
+        successFeedback.textContent = '';
+        employeeIdInput.focus();
+    });
+    
+    // Real-time validation
+    employeeIdInput.addEventListener('input', function() {
+        const value = this.value.trim();
+        
+        // Clear previous validation states
+        this.classList.remove('is-valid', 'is-invalid');
+        feedback.textContent = '';
+        successFeedback.textContent = '';
+        
+        if (value.length === 0) {
+            // No validation for empty input
+            return;
+        } else if (value.length < 2) {
+            this.classList.add('is-invalid');
+            feedback.textContent = 'Employee ID must be at least 2 characters long';
+        } else if (!/^[A-Za-z0-9]+$/.test(value)) {
+            this.classList.add('is-invalid');
+            feedback.textContent = 'Employee ID can only contain letters and numbers';
+        } else {
+            this.classList.add('is-valid');
+            successFeedback.textContent = 'Employee ID format is valid';
+            
+            // Optional: Trigger AJAX validation
+            validateEmployeeIdAjax(value);
+        }
+    });
+    
+    // Form submission handler
+    form.addEventListener('submit', function(e) {
+        const employeeId = employeeIdInput.value.trim();
+        const periodId = document.querySelector('input[name="period_id"]').value;
+        
+        // Validate employee ID
+        if (!employeeId) {
+            e.preventDefault();
+            employeeIdInput.classList.add('is-invalid');
+            feedback.textContent = 'Please enter an Employee ID';
+            employeeIdInput.focus();
+            return;
+        }
+        
+        if (employeeId.length < 2) {
+            e.preventDefault();
+            employeeIdInput.classList.add('is-invalid');
+            feedback.textContent = 'Employee ID must be at least 2 characters long';
+            employeeIdInput.focus();
+            return;
+        }
+        
+        // Validate period ID
+        if (!periodId) {
+            e.preventDefault();
+            alert('Period ID is missing. Please refresh the page and try again.');
+            return;
+        }
+        
+        // Show loading state
+        showLoadingState();
+        
+        // Set button loading state
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Generating...';
+        generateBtn.disabled = true;
+        
+        // Add timeout to reset button if request takes too long
+        setTimeout(function() {
+            hideLoadingState();
+            if (generateBtn.disabled) {
+                generateBtn.innerHTML = '<i class="fas fa-file-pdf me-2"></i>Generate Pay Slip';
+                generateBtn.disabled = false;
+            }
+        }, 30000); // 30 seconds timeout
+    });
+    
+    // Loading state functions
+    function showLoadingState() {
+        loadingOverlay.classList.remove('d-none');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    function hideLoadingState() {
+        loadingOverlay.classList.add('d-none');
+        document.body.style.overflow = 'auto';
+    }
+    
+    // AJAX validation function
+    function validateEmployeeIdAjax(employeeId) {
+        if (employeeId.length < 2) return;
+        
+        // Show loading indicator in input
+        employeeIdInput.classList.add('is-valid');
+        successFeedback.textContent = 'Validating employee...';
+        
+        fetch("{% url 'validate_employee_id' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: 'employee_id=' + encodeURIComponent(employeeId)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.valid) {
+                employeeIdInput.classList.remove('is-invalid');
+                employeeIdInput.classList.add('is-valid');
+                successFeedback.textContent = 'Employee ID is valid';
+                feedback.textContent = '';
+            } else {
+                employeeIdInput.classList.remove('is-valid');
+                employeeIdInput.classList.add('is-invalid');
+                feedback.textContent = data.message || 'Invalid employee ID';
+                successFeedback.textContent = '';
+            }
+        })
+        .catch(error => {
+            console.log('Validation error:', error);
+            // Don't show error to user for validation failures
+            employeeIdInput.classList.remove('is-invalid');
+            employeeIdInput.classList.add('is-valid');
+            successFeedback.textContent = 'Employee ID format is valid';
+        });
+    }
+    
+    // Debounced AJAX validation
+    let validationTimeout;
+    employeeIdInput.addEventListener('input', function() {
+        clearTimeout(validationTimeout);
+        const value = this.value.trim();
+        
+        if (value.length >= 2) {
+            validationTimeout = setTimeout(() => {
+                validateEmployeeIdAjax(value);
+            }, 800); // Wait 800ms after user stops typing
+        }
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl + Enter to submit form
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            form.requestSubmit();
+        }
+        
+        // Escape key to clear input
+        if (e.key === 'Escape') {
+            employeeIdInput.value = '';
+            employeeIdInput.classList.remove('is-valid', 'is-invalid');
+            feedback.textContent = '';
+            successFeedback.textContent = '';
+            employeeIdInput.focus();
+        }
+    });
+    
+    // Auto-dismiss alerts after 5 seconds
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(function(alert) {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
+});
+</script>
+
+<style>
+.card {
+    border: none;
+    border-radius: 0.5rem;
+}
+
+.card-header {
+    border-radius: 0.5rem 0.5rem 0 0 !important;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-right: none;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #0d6efd 0%, #0b5ed7 100%);
+    border: none;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #0b5ed7 0%, #0a58ca 100%);
+    transform: translateY(-1px);
+}
+
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+#loadingOverlay {
+    border-radius: 0.5rem;
+}
+
+.alert {
+    border-radius: 0.5rem;
+    border: none;
+}
+
+.form-text {
+    font-size: 0.875rem;
+}
+
+.list-unstyled li {
+    margin-bottom: 0.25rem;
+}
+
+.card-body {
+    position: relative;
+}
+
+@media (max-width: 768px) {
+    .container {
+        padding: 1rem;
+    }
+    
+    .card {
+        margin-top: 1rem;
+    }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,386 @@
+{% extends 'myapp/index.html' %}
+
+{% block content %}
+<div class="container-fluid px-2 px-sm-3 px-md-4 py-3 py-md-4">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+                <div>
+                    <h2 class="mb-1 text-dark fw-bold fs-4 fs-md-3">
+                        <i class="fas fa-percent me-2 text-primary"></i>
+                        Tax Slab
+                    </h2>
+                    <p class="text-muted mb-0 small">Manage tax slabs for salary ranges</p>
+                </div>
+                <div class="mt-2 mt-md-0">
+                    <button id="addSlabBtn" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Add New Slab
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0 fw-semibold text-white">
+                        <i class="fas fa-filter me-2"></i>
+                        Search Tax Slabs
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="searchInput" class="form-label small text-muted fw-medium">
+                                Search by ID or Salary Range:
+                            </label>
+                            <input type="text" id="searchInput" class="form-control" 
+                                   placeholder="Enter ID or salary range..." aria-label="Search tax slabs">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tax Slabs Table -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0 fw-semibold text-white">
+                        <i class="fas fa-table me-2"></i>
+                        Tax Slabs
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th scope="col" class="fw-semibold text-dark">ID</th>
+                                    <th scope="col" class="fw-semibold text-dark">Min Salary</th>
+                                    <th scope="col" class="fw-semibold text-dark">Max Salary</th>
+                                    <th scope="col" class="fw-semibold text-dark">Fixed Tax</th>
+                                    <th scope="col" class="fw-semibold text-dark">Salary %</th>
+                                </tr>
+                            </thead>
+                            <tbody id="slabTableBody">
+                                {% for slab in tax_slabs %}
+                                <tr>
+                                    <td class="fw-medium">{{ slab.id }}</td>
+                                    <td>{{ slab.min_salary|floatformat:2 }}</td>
+                                    <td>{{ slab.max_salary|floatformat:2 }}</td>
+                                    <td>{{ slab.fix_tax|floatformat:2 }}</td>
+                                    <td>{{ slab.sal_percent|floatformat:2 }}%</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        No tax slabs found. Click "Add New Slab" to create one.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add New Slab Modal -->
+<div class="modal fade" id="addSlabModal" tabindex="-1" aria-labelledby="addSlabModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title text-white" id="addSlabModalLabel">
+                    <i class="fas fa-plus me-2"></i>Add New Tax Slab
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addSlabForm">
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6">
+                            <label for="minSalary" class="form-label">
+                                <i class="fas fa-arrow-down me-1 text-success"></i>
+                                Minimum Salary <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="minSalary" 
+                                   placeholder="Enter minimum salary" step="0.01" min="0" required>
+                            <div class="form-text">Enter the minimum salary for this tax bracket</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="maxSalary" class="form-label">
+                                <i class="fas fa-arrow-up me-1 text-danger"></i>
+                                Maximum Salary <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="maxSalary" 
+                                   placeholder="Enter maximum salary" step="0.01" min="0" required>
+                            <div class="form-text">Enter the maximum salary for this tax bracket</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="fixTax" class="form-label">
+                                <i class="fas fa-dollar-sign me-1 text-warning"></i>
+                                Fixed Tax <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="fixTax" 
+                                   placeholder="Enter fixed tax amount" step="0.01" min="0" required>
+                            <div class="form-text">Enter the fixed tax amount for this bracket</div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label for="salPercent" class="form-label">
+                                <i class="fas fa-percent me-1 text-info"></i>
+                                Salary Percentage <span class="text-danger">*</span>
+                            </label>
+                            <input type="number" class="form-control" id="salPercent" 
+                                   placeholder="Enter percentage" step="0.01" min="0" max="100" required>
+                            <div class="form-text">Enter the tax percentage (0-100)</div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Note:</strong> All fields are required. The system will automatically assign the next available ID.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="saveSlabBtn">
+                    <i class="fas fa-save me-2"></i>Save Tax Slab
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none" 
+     style="background-color: rgba(248, 249, 250, 0.95); z-index: 9999; backdrop-filter: blur(2px);">
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="text-center">
+            <div class="spinner-border text-primary mb-3" role="status" style="width: 2.5rem; height: 2.5rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted small mb-0">Saving tax slab...</p>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Styles -->
+<style>
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+        transition: background-color 0.15s ease-in-out;
+    }
+    .card {
+        transition: box-shadow 0.15s ease-in-out;
+    }
+    .card:hover {
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    }
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.7;
+    }
+    .btn-loading .fa-spinner {
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+    .modal-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+</style>
+
+<script>
+    const csrfToken = "{{ csrf_token }}";
+
+    // Show loading overlay
+    function showLoading() {
+        document.getElementById('loadingOverlay').classList.remove('d-none');
+        document.body.style.overflow = 'hidden';
+    }
+    
+    // Hide loading overlay
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.add('d-none');
+        document.body.style.overflow = 'auto';
+    }
+
+    // Search filter functionality
+    document.getElementById('searchInput').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const rows = document.querySelectorAll('#slabTableBody tr');
+        
+        rows.forEach(row => {
+            if (row.querySelector('td[colspan]')) return; // Skip empty state row
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(searchTerm) ? '' : 'none';
+        });
+    });
+
+    // Add New Slab button - opens modal
+    document.getElementById('addSlabBtn').addEventListener('click', function() {
+        // Reset form
+        document.getElementById('addSlabForm').reset();
+        
+        // Show modal using Bootstrap 5
+        const modal = new bootstrap.Modal(document.getElementById('addSlabModal'));
+        modal.show();
+        
+        // Focus on first input
+        setTimeout(() => {
+            document.getElementById('minSalary').focus();
+        }, 500);
+    });
+
+    // Save Tax Slab functionality
+    document.getElementById('saveSlabBtn').addEventListener('click', function() {
+        const form = document.getElementById('addSlabForm');
+        
+        // Get form values
+        const minSalary = document.getElementById('minSalary').value.trim();
+        const maxSalary = document.getElementById('maxSalary').value.trim();
+        const fixTax = document.getElementById('fixTax').value.trim();
+        const salPercent = document.getElementById('salPercent').value.trim();
+
+        // Validate all fields are filled (matching Oracle Forms requirement)
+        if (!minSalary) {
+            alert('Minimum salary is required');
+            document.getElementById('minSalary').focus();
+            return;
+        }
+        if (!maxSalary) {
+            alert('Maximum salary is required');
+            document.getElementById('maxSalary').focus();
+            return;
+        }
+        if (!fixTax) {
+            alert('Fixed tax is required');
+            document.getElementById('fixTax').focus();
+            return;
+        }
+        if (!salPercent) {
+            alert('Salary percentage is required');
+            document.getElementById('salPercent').focus();
+            return;
+        }
+
+        // Validate numeric values
+        if (parseFloat(minSalary) < 0 || parseFloat(maxSalary) < 0 || 
+            parseFloat(fixTax) < 0 || parseFloat(salPercent) < 0) {
+            alert('All values must be positive numbers');
+            return;
+        }
+
+        if (parseFloat(minSalary) >= parseFloat(maxSalary)) {
+            alert('Maximum salary must be greater than minimum salary');
+            document.getElementById('maxSalary').focus();
+            return;
+        }
+
+        if (parseFloat(salPercent) > 100) {
+            alert('Salary percentage cannot exceed 100%');
+            document.getElementById('salPercent').focus();
+            return;
+        }
+
+        // Confirm save (matching Oracle Forms confirmation)
+        if (!confirm('Are you sure you want to save this tax slab?')) {
+            return;
+        }
+
+        // Show loading and disable button
+        showLoading();
+        const saveBtn = document.getElementById('saveSlabBtn');
+        saveBtn.classList.add('btn-loading');
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        saveBtn.disabled = true;
+
+        // Send AJAX request
+        fetch('/save-tax-slab/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({
+                min_salary: parseFloat(minSalary),
+                max_salary: parseFloat(maxSalary),
+                fix_tax: parseFloat(fixTax),
+                sal_percent: parseFloat(salPercent)
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            hideLoading();
+            saveBtn.classList.remove('btn-loading');
+            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Tax Slab';
+            saveBtn.disabled = false;
+            
+            if (data.success) {
+                alert(data.message);
+                
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('addSlabModal'));
+                modal.hide();
+                
+                // Reload page to show new record (matching Oracle Forms behavior)
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            saveBtn.classList.remove('btn-loading');
+            saveBtn.innerHTML = '<i class="fas fa-save me-2"></i>Save Tax Slab';
+            saveBtn.disabled = false;
+            alert('An error occurred: ' + error);
+        });
+    });
+
+    // Handle Enter key in form fields
+    document.getElementById('addSlabForm').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('saveSlabBtn').click();
+        }
+    });
+
+    // Auto-format currency inputs
+    ['minSalary', 'maxSalary', 'fixTax'].forEach(id => {
+        document.getElementById(id).addEventListener('blur', function() {
+            if (this.value) {
+                this.value = parseFloat(this.value).toFixed(2);
+            }
+        });
+    });
+
+    // Auto-format percentage input
+    document.getElementById('salPercent').addEventListener('blur', function() {
+        if (this.value) {
+            this.value = parseFloat(this.value).toFixed(2);
+        }
+    });
+</script>
+{% endblock %}

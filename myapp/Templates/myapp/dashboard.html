@@ -1,0 +1,1972 @@
+{% extends 'myapp/index.html' %}
+{% load static %}
+
+{% block content %}
+<script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Montserrat:wght@400;500;600;700&display=swap">
+
+<style>
+  /* Zone-specific styles */
+  .card-5 { 
+    background: linear-gradient(135deg, #f3e8ff, #ddd6fe); 
+    animation-delay: 0.5s; 
+  }
+  .card-5 .card-icon, .card-5 .card-value { 
+    color: #8b5cf6; 
+  }
+  
+  .zone-controls {
+    margin-bottom: 1.5rem;
+  }
+  
+  .staff-type-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    padding: 0.5rem;
+    background: rgba(248, 250, 252, 0.8);
+    border-radius: 12px;
+  }
+  
+  .staff-tab {
+    padding: 0.75rem 1.5rem;
+    border: 2px solid transparent;
+    background: white;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+  
+  .staff-tab:hover,
+  .staff-tab.active {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
+  }
+  
+  .zone-comparison-cards {
+    margin-bottom: 2rem;
+  }
+  
+  .zone-performance-summary {
+    margin: 2rem 0;
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  }
+  
+  .zone-summary-table {
+    margin-bottom: 0;
+  }
+  
+  .zone-summary-table th {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    border: none;
+    color: #475569;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 1rem 0.75rem;
+  }
+  
+  .zone-summary-table td {
+    border: none;
+    padding: 0.75rem;
+    vertical-align: middle;
+  }
+  
+  .zone-row {
+    transition: all 0.3s ease;
+    cursor: pointer;
+  }
+  
+  .zone-row:hover {
+    background: rgba(37, 99, 235, 0.05);
+    transform: translateX(4px);
+  }
+  
+  .trend-indicator {
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+  }
+  
+  .trend-indicator.positive {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+  }
+  
+  .trend-indicator.negative {
+    background: rgba(239, 68, 68, 0.1);
+    color: #dc2626;
+  }
+  
+  .zone-charts-container {
+    margin: 2rem 0;
+  }
+  
+  .zone-chart-wrapper,
+  .zone-trend-wrapper {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    position: relative;
+    height: 450px;
+  }
+  
+  .zone-legend {
+    margin-top: 1rem;
+  }
+  
+  .zone-stats {
+    background: linear-gradient(135deg, #f8fafc, #e8f4ff);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+  }
+  
+  @media (max-width: 768px) {
+    .staff-type-tabs {
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .zone-summary-table {
+      font-size: 0.8rem;
+    }
+    
+    .zone-chart-wrapper,
+    .zone-trend-wrapper {
+      height: 350px;
+      padding: 1rem;
+    }
+  }
+  </style>
+
+<style>
+  /* Enhanced Chart Styles */
+.chart-container {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 24px;
+    padding: 2.5rem;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    margin-top: 2rem;
+    animation: slideInUp 1s ease;
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    position: relative;
+    overflow: hidden;
+}
+
+.chart-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #2563eb, #10b981, #f97316, #ef4444);
+    border-radius: 24px 24px 0 0;
+}
+
+.chart-header {
+    font-family: var(--header-font);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 2rem;
+    text-align: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.chart-header::after {
+    content: "";
+    position: absolute;
+    bottom: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+    border-radius: 2px;
+}
+
+.chart-wrapper {
+    position: relative;
+    height: 450px;
+    margin: 1.5rem 0;
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 16px;
+    padding: 1rem;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.chart-progress-container {
+    position: relative;
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 2px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.chart-progress {
+    height: 100%;
+    background: linear-gradient(90deg, #2563eb, #10b981);
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(37, 99, 235, 0.3);
+}
+
+.period-summary {
+    margin-top: 1.5rem;
+    animation: fadeInUp 0.6s ease;
+}
+
+.chart-legend-enhanced {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 2rem;
+    margin-top: 1.5rem;
+    padding: 1.5rem;
+    background: rgba(248, 250, 252, 0.8);
+    border-radius: 12px;
+    border: 1px solid rgba(226, 232, 240, 0.5);
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.legend-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    position: relative;
+    overflow: hidden;
+}
+
+.legend-color::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: inherit;
+    border-radius: 4px;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.3);
+}
+
+.legend-color.earnings {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.legend-color.deductions {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.legend-color.net-salary {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.legend-color.gross-salary {
+    background: linear-gradient(135deg, #a855f7, #9333ea);
+}
+
+.chart-stats-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: rgba(248, 250, 252, 0.6);
+    border-radius: 12px;
+    border: 1px solid rgba(226, 232, 240, 0.4);
+    transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+    background: rgba(255, 255, 255, 0.8);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.stat-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.stat-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.chart-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.chart-control-btn {
+    padding: 0.5rem 1rem;
+    border: 2px solid #e2e8f0;
+    background: white;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.chart-control-btn:hover,
+.chart-control-btn.active {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(37, 99, 235, 0.2);
+}
+
+.chart-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 400px;
+    color: #64748b;
+}
+
+.chart-loading .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top: 4px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.comparison-cards {
+    margin-bottom: 2rem;
+}
+
+.comparison-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    text-align: center;
+    transition: all 0.3s ease;
+    border-left: 5px solid;
+    position: relative;
+    overflow: hidden;
+}
+
+.comparison-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: inherit;
+    opacity: 0.5;
+    transition: opacity 0.3s ease;
+}
+
+.comparison-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.comparison-card:hover::before {
+    opacity: 0.7;
+}
+
+.comparison-card.positive {
+    border-left-color: var(--secondary-color);
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+}
+
+.comparison-card.negative {
+    border-left-color: var(--danger-color);
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+}
+
+.comparison-card.neutral {
+    border-left-color: #64748b;
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .chart-container {
+        padding: 1.5rem;
+        border-radius: 16px;
+    }
+    
+    .chart-header {
+        font-size: 1.5rem;
+    }
+    
+    .chart-wrapper {
+        height: 350px;
+    }
+    
+    .chart-legend-enhanced {
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .legend-item {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    .chart-stats-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-wrapper {
+        height: 300px;
+        padding: 0.5rem;
+    }
+    
+    .chart-legend-enhanced {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .chart-stats-summary {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
+<style>
+  
+  :root {
+    --primary-color: #2563eb;
+    --secondary-color: #10b981;
+    --accent-color: #f97316;
+    --danger-color: #ef4444;
+    --bg-gradient: linear-gradient(135deg, #f9fafb 0%, #e8f4ff 100%);
+    --card-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    --hover-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+    --header-font: 'Montserrat', sans-serif;
+    --body-font: 'Poppins', sans-serif;
+  }
+
+  body {
+    background-attachment: fixed;
+  }
+
+  .dashboard-wrapper {
+    font-family: var(--body-font);
+    padding: 2rem;
+    background: var(--bg-gradient);
+    min-height: 100vh;
+  }
+
+  .main-heading {
+    font-family: var(--header-font);
+    text-align: center;
+    font-size: 2.2rem;
+    font-weight: 700;
+    margin-bottom: 2rem;
+    color: #1e293b;
+    position: relative;
+    padding-bottom: 1rem;
+    animation: fadeInDown 1s ease;
+  }
+
+  .main-heading::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: var(--primary-color);
+    border-radius: 2px;
+  }
+
+  .dashboard-stats {
+    margin-top: 1rem;
+  }
+
+  .dashboard-card {
+    border-radius: 16px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease;
+    animation: fadeInUp 0.8s ease;
+  }
+
+  .dashboard-card:hover {
+    transform: translateY(-8px);
+    box-shadow: var(--hover-shadow);
+  }
+
+  .card-1 { background: linear-gradient(135deg, #e0f2fe, #bae6fd); animation-delay: 0.1s; }
+  .card-2 { background: linear-gradient(135deg, #dcfce7, #bbf7d0); animation-delay: 0.2s; }
+  .card-3 { background: linear-gradient(135deg, #ffedd5, #fed7aa); animation-delay: 0.3s; }
+  .card-4 { background: linear-gradient(135deg, #fee2e2, #fecaca); animation-delay: 0.4s; }
+
+  .dashboard-card-body {
+    text-align: center;
+    padding: 1.5rem;
+    width: 100%;
+    z-index: 2;
+  }
+
+  .card-icon {
+    font-size: 2.8rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-title {
+    font-weight: 500;
+    font-size: 1rem;
+    color: #475569;
+    text-transform: uppercase;
+  }
+
+  .card-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin: 0.25rem 0;
+  }
+
+  .card-subtitle {
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+
+  .card-1 .card-icon, .card-1 .card-value { color: var(--primary-color); }
+  .card-2 .card-icon, .card-2 .card-value { color: var(--secondary-color); }
+  .card-3 .card-icon, .card-3 .card-value { color: var(--accent-color); }
+  .card-4 .card-icon, .card-4 .card-value { color: var(--danger-color); }
+
+  .loading {
+    opacity: 0.6;
+  }
+
+  .count-up {
+    animation: countUp 2s ease-in-out;
+  }
+
+  .chart-container {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: var(--card-shadow);
+    margin-top: 2rem;
+    animation: slideInUp 1s ease;
+  }
+
+  .chart-header {
+    font-family: var(--header-font);
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 1.5rem;
+    text-align: center;
+    position: relative;
+  }
+
+  .chart-header::after {
+    content: "";
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 2px;
+    background: var(--primary-color);
+    border-radius: 1px;
+  }
+
+  .comparison-cards {
+    margin-bottom: 2rem;
+  }
+
+  .comparison-card {
+    background: white;
+    border-radius: 12px;
+    padding: 1.2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    text-align: center;
+    transition: all 0.3s ease;
+    border-left: 4px solid;
+  }
+
+  .comparison-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  .comparison-card.positive {
+    border-left-color: var(--secondary-color);
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  }
+
+  .comparison-card.negative {
+    border-left-color: var(--danger-color);
+    background: linear-gradient(135deg, #fef2f2, #fee2e2);
+  }
+
+  .comparison-card.neutral {
+    border-left-color: #64748b;
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  }
+
+  .comparison-value {
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+  }
+
+  .comparison-label {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 500;
+  }
+
+  .comparison-percent {
+    font-size: 0.8rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    display: inline-block;
+    margin-top: 0.3rem;
+  }
+
+  .positive .comparison-value { color: var(--secondary-color); }
+  .negative .comparison-value { color: var(--danger-color); }
+  .neutral .comparison-value { color: #64748b; }
+
+  .positive .comparison-percent { 
+    background: #dcfce7; 
+    color: var(--secondary-color); 
+  }
+  .negative .comparison-percent { 
+    background: #fee2e2; 
+    color: var(--danger-color); 
+  }
+  .neutral .comparison-percent { 
+    background: #e2e8f0; 
+    color: #64748b; 
+  }
+
+  .chart-wrapper {
+    position: relative;
+    height: 400px;
+    margin: 1rem 0;
+  }
+
+  .debug-info {
+    background: #f8f9fa;
+    padding: 1rem;
+    margin: 1rem 0;
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    font-family: monospace;
+    font-size: 0.9rem;
+  }
+
+  @keyframes slideInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes countUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 992px) {
+    .dashboard-card { height: 180px; }
+    .card-icon { font-size: 2.4rem; }
+    .card-value { font-size: 1.6rem; }
+  }
+
+  @media (max-width: 576px) {
+    .dashboard-wrapper { padding: 1rem; }
+    .main-heading { font-size: 1.8rem; }
+  }
+</style>
+
+<div class="container-fluid dashboard-wrapper">
+  <h1 class="main-heading">Welcome to WSSP Human Resource Management Software</h1>
+
+  <div class="row g-4 dashboard-stats">
+    <!-- Card 1: Active Employees -->
+    <div class="col-lg-3 col-md-6">
+      <div class="dashboard-card card-1">
+        <div class="dashboard-card-body">
+          <iconify-icon icon="tabler:users-group" class="card-icon"></iconify-icon>
+          <h5 class="card-title">Active Employees</h5>
+          <p class="card-value count-animation" data-target="{{ active_employees }}">{{ active_employees }}</p>
+          <div class="card-subtitle">Currently Active</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 2: Total Salary -->
+    <div class="col-lg-3 col-md-6">
+      <div class="dashboard-card card-2">
+        <div class="dashboard-card-body">
+          <iconify-icon icon="solar:money-bag-bold" class="card-icon"></iconify-icon>
+          <h5 class="card-title">Gross Salary</h5>
+          <p class="card-value count-animation" data-target="{{ gross_salary }}">
+            ₨{{ total_salary|floatformat:0 }}
+          </p>
+          <div class="card-subtitle">Period {{ latest_payroll_period }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Card 3: Active Loans -->
+    <!-- <div class="col-lg-3 col-md-6">
+      <div class="dashboard-card card-3">
+        <div class="dashboard-card-body">
+          <iconify-icon icon="ph:bank-bold" class="card-icon"></iconify-icon>
+          <h5 class="card-title">Active Loans</h5>
+          <p class="card-value count-animation" data-target="{{ active_loans }}">{{ active_loans }}</p>
+          <div class="card-subtitle">Currently Processing</div>
+        </div>
+      </div>
+    </div> -->
+
+    <!-- Card 4: Payroll Periods -->
+    <!-- <div class="col-lg-3 col-md-6">
+      <div class="dashboard-card card-4">
+        <div class="dashboard-card-body">
+          <iconify-icon icon="solar:calendar-bold" class="card-icon"></iconify-icon>
+          <h5 class="card-title">Payroll Periods</h5>
+          <p class="card-value count-animation" data-target="{{ payroll_periods }}">{{ payroll_periods }}</p>
+          <div class="card-subtitle">Total Periods</div>
+        </div>
+      </div>
+    </div> -->
+
+    <!-- Card 5: Show Salary Trends -->
+<div class="col-lg-3 col-md-6">
+  <div class="dashboard-card card-3" onclick="toggleChartSection()">
+    <div class="dashboard-card-body">
+      <iconify-icon icon="solar:graph-new-up-bold-duotone" class="card-icon"></iconify-icon>
+      <h5 class="card-title">Detailed Analytics</h5>
+      <p class="card-value">Salary Trends</p>
+      <div class="card-subtitle">Click to View</div>
+    </div>
+  </div>
+</div>
+
+<!-- Zone-wise Analysis Card -->
+<div class="col-lg-3 col-md-6">
+  <div class="dashboard-card card-5" onclick="toggleZoneChartSection()">
+    <div class="dashboard-card-body">
+      <iconify-icon icon="solar:map-point-bold-duotone" class="card-icon"></iconify-icon>
+      <h5 class="card-title">Zone Analysis</h5>
+      <p class="card-value">{{ total_zones }} Offices</p>
+      <div class="card-subtitle">Click to View</div>
+    </div>
+  </div>
+</div>
+  </div>
+
+
+<!-- Zone-wise Salary Analysis Chart Section -->
+<div id="zoneChartSection" class="chart-container" style="display: none;">
+  <h2 class="chart-header">
+    <iconify-icon icon="solar:map-bold" style="margin-right: 0.5rem; color: var(--primary-color);"></iconify-icon>
+    Zone-wise Salary Analysis & Trends
+  </h2>
+
+  <!-- Zone Selector -->
+  <div class="zone-controls">
+    <div class="chart-controls">
+      <button class="chart-control-btn active" onclick="showAllZones()">All Zones</button>
+      {% for zone in zone_data %}
+      <!-- <button class="chart-control-btn" onclick="showZoneData('{{ zone.zone_id }}')">Zone {{ zone.zone_id }}</button> -->
+      <button class="chart-control-btn" onclick="showZoneData('{{ zone.zone_id }}')">
+        {% if zone.zone_id == '1' %}Zone-A
+        {% elif zone.zone_id == '2' %}Zone-B
+        {% elif zone.zone_id == '3' %}Zone-C
+        {% elif zone.zone_id == '4' %}Zone-D
+        {% elif zone.zone_id == '5' %}Zone-E
+        {% elif zone.zone_id == '6' %}HeadOffice
+        {% else %}Zone {{ zone.zone_id }}{% endif %}
+      </button>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Staff Type Tabs -->
+  <div class="staff-type-tabs">
+    <button class="staff-tab active" data-staff="WSSP-STAFF">WSSP Staff</button>
+    <button class="staff-tab" data-staff="WSSP-PROJECT-STAFF UNICEF">Project Staff (UNICEF)</button>
+  </div>
+
+  <!-- Zone Performance Summary Table -->
+  <div class="zone-performance-summary">
+    <h4 class="text-center mb-4" style="color: #1e293b; font-weight: 600;">Current Period Zone Performance</h4>
+    <div class="table-responsive">
+      <table class="table table-hover zone-summary-table">
+        <thead>
+          <tr>
+            <th>Zone</th>
+            <th>Staff Type</th>
+            <th>Gross Salary</th>
+            <th>Deductions</th>
+            <th>Net Salary</th>
+            <th>vs Previous</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for zone in zone_data %}
+          <tr class="zone-row" data-zone="{{ zone.zone_id }}" data-staff="{{ zone.staff_type }}">
+            <!-- <td class="fw-bold">Zone {{ zone.zone_id }}</td> -->
+            <td class="fw-bold">
+              {% if zone.zone_id == '1' %}Zone-A
+              {% elif zone.zone_id == '2' %}Zone-B
+              {% elif zone.zone_id == '3' %}Zone-C
+              {% elif zone.zone_id == '4' %}Zone-D
+              {% elif zone.zone_id == '5' %}Zone-E
+              {% elif zone.zone_id == '6' %}HeadOffice
+              {% else %}Zone {{ zone.zone_id }}{% endif %}
+            </td>
+            <td>
+              <span class="badge {% if zone.staff_type == 'WSSP-STAFF' %}bg-primary{% else %}bg-success{% endif %}">
+                {{ zone.staff_type_short }}
+              </span>
+            </td>
+            <td class="text-dark fw-bold">₨{{ zone.gross_salary|floatformat:0 }}</td>
+            <td class="text-dark fw-bold">₨{{ zone.deductions|floatformat:0 }}</td>
+            <td class="text-primary fw-bold">₨{{ zone.net_salary|floatformat:0 }}</td>
+            <td>
+              {% if zone.net_change %}
+              <span class="trend-indicator {% if zone.net_change > 0 %}positive{% else %}negative{% endif %}">
+                {% if zone.net_change > 0 %}↗{% else %}↘{% endif %}
+                {% if zone.net_change > 0 %}+{% endif %}{{ zone.net_percent|floatformat:1 }}%
+              </span>
+              {% else %}
+              <span class="text-muted">N/A</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Zone Charts Container -->
+  <div class="zone-charts-container">
+    <!-- Main Zone Comparison Chart -->
+    <div class="chart-wrapper zone-chart-wrapper">
+      <h5 class="text-center mb-3" style="color: #64748b;">Zone-wise Salary Comparison For Current Month</h5>
+      <canvas id="zoneComparisonChart"></canvas>
+    </div>
+
+    <!-- Individual Zone Trend Chart (Hidden by default) -->
+    <div class="chart-wrapper zone-trend-wrapper" id="zoneTrendWrapper" style="display: none; margin-top: 2rem;">
+      <h5 class="text-center mb-3" id="zoneTrendTitle" style="color: #64748b;">Zone Trend Analysis </h5>
+      <canvas id="zoneTrendChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Zone Chart Legend -->
+  <div class="chart-legend-enhanced zone-legend">
+    <div class="legend-item">
+      <div class="legend-color" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+      <span>Gross Salary</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: linear-gradient(135deg, #ef4444, #dc2626);"></div>
+      <span>Deductions</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background: linear-gradient(135deg, #2563eb, #1d4ed8);"></div>
+      <span>Net Salary</span>
+    </div>
+  </div>
+
+  <!-- Zone Statistics Summary -->
+  <div class="chart-stats-summary zone-stats">
+    <div class="stat-item">
+      <div class="stat-value" style="color: var(--primary-color);">{{ total_zones }}</div>
+      <div class="stat-label">Active Zones</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" style="color: var(--secondary-color);">₨{{ zone_totals.total_gross|floatformat:0 }}</div>
+      <div class="stat-label">Total Gross</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" style="color: var(--danger-color);">₨{{ zone_totals.total_deductions|floatformat:0 }}</div>
+      <div class="stat-label">Total Deductions</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-value" style="color: var(--accent-color);">₨{{ zone_totals.total_net|floatformat:0 }}</div>
+      <div class="stat-label">Total Net</div>
+    </div>
+  </div>
+</div>
+  
+
+  <!-- Salary Trends Chart Section -->
+  <div id="chartSection" class="chart-container" style="display: none;">
+    <h2 class="chart-header">
+      <iconify-icon icon="solar:chart-bold" style="margin-right: 0.5rem; color: var(--primary-color);"></iconify-icon>
+      Salary Trends & Analytics
+    </h2>
+
+
+    <!-- Month-over-Month Comparison Cards -->
+    {% if previous_month_data %}
+    <div class="row g-3 comparison-cards">
+      <div class="col-lg-4 col-md-6">
+        <div class="comparison-card {% if previous_month_data.earnings_change > 0 %}positive{% elif previous_month_data.earnings_change < 0 %}negative{% else %}neutral{% endif %}">
+          <div class="comparison-label">Earnings Change</div>
+          <div class="comparison-value">
+            {% if previous_month_data.earnings_change > 0 %}+{% endif %}₨{{ previous_month_data.earnings_change|floatformat:0 }}
+          </div>
+          <div class="comparison-percent">
+            {% if previous_month_data.earnings_percent > 0 %}+{% endif %}{{ previous_month_data.earnings_percent|floatformat:1 }}%
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <div class="comparison-card {% if previous_month_data.deductions_change > 0 %}negative{% elif previous_month_data.deductions_change < 0 %}positive{% else %}neutral{% endif %}">
+          <div class="comparison-label">Deductions Change</div>
+          <div class="comparison-value">
+            {% if previous_month_data.deductions_change > 0 %}+{% endif %}₨{{ previous_month_data.deductions_change|floatformat:0 }}
+          </div>
+          <div class="comparison-percent">
+            {% if previous_month_data.deductions_percent > 0 %}+{% endif %}{{ previous_month_data.deductions_percent|floatformat:1 }}%
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-4 col-md-6">
+        <div class="comparison-card {% if previous_month_data.net_change > 0 %}positive{% elif previous_month_data.net_change < 0 %}negative{% else %}neutral{% endif %}">
+          <div class="comparison-label">Net Salary Change</div>
+          <div class="comparison-value">
+            {% if previous_month_data.net_change > 0 %}+{% endif %}₨{{ previous_month_data.net_change|floatformat:0 }}
+          </div>
+          <div class="comparison-percent">
+            {% if previous_month_data.net_percent > 0 %}+{% endif %}{{ previous_month_data.net_percent|floatformat:1 }}%
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Chart Canvas -->
+    <div class="chart-wrapper">
+      <canvas id="salaryChart"></canvas>
+    </div>
+
+    <!-- Chart Legend & Summary -->
+    <div class="row mt-3">
+      <div class="col-md-8">
+        <div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 1rem; font-size: 0.9rem;">
+          <div style="display: flex; align-items: center; gap: 0.3rem;">
+            <div style="width: 12px; height: 12px; background: linear-gradient(45deg, #10b981, #059669); border-radius: 2px;"></div>
+            <span>Earnings</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.3rem;">
+            <div style="width: 12px; height: 12px; background: linear-gradient(45deg, #ef4444, #dc2626); border-radius: 2px;"></div>
+            <span>Deductions</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.3rem;">
+            <div style="width: 12px; height: 12px; background: linear-gradient(45deg, #2563eb, #1d4ed8); border-radius: 2px;"></div>
+            <span>Net Salary</span>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 text-end">
+        <small class="text-muted">Last {% if chart_data %}{{ chart_data|length }}{% else %}0{% endif %} Payroll Periods</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  // Zone chart data (passed from Django)
+  const zoneChartData = JSON.parse('{{ zone_chart_data|escapejs }}');
+  const zoneTrendData = JSON.parse('{{ zone_trend_data|escapejs }}');
+  
+  let zoneComparisonChart = null;
+  let zoneTrendChart = null;
+  
+  function toggleZoneChartSection() {
+    const chartDiv = document.getElementById('zoneChartSection');
+    if (chartDiv.style.display === 'none' || chartDiv.style.display === '') {
+      chartDiv.style.display = 'block';
+      chartDiv.scrollIntoView({ behavior: 'smooth' });
+      
+      // Initialize charts when section is shown
+      setTimeout(() => {
+        initializeZoneCharts();
+      }, 300);
+    } else {
+      chartDiv.style.display = 'none';
+    }
+  }
+  
+  function initializeZoneCharts() {
+    if (!zoneChartData || zoneChartData.length === 0) {
+      console.log('No zone chart data available');
+      return;
+    }
+    
+    // Initialize zone comparison chart
+    initializeZoneComparisonChart();
+    
+    // Initialize staff type tabs
+    initializeStaffTypeTabs();
+  }
+  
+  function initializeZoneComparisonChart() {
+    const ctx = document.getElementById('zoneComparisonChart');
+    if (!ctx) return;
+    
+    // Destroy existing chart if it exists
+    if (zoneComparisonChart) {
+      zoneComparisonChart.destroy();
+    }
+    
+    // Prepare data for current staff type
+    const currentStaffType = document.querySelector('.staff-tab.active').dataset.staff;
+    const filteredData = zoneChartData.filter(item => item.staff_type === currentStaffType);
+    
+    // Group by zone
+    const zoneGroups = {};
+    filteredData.forEach(item => {
+      if (!zoneGroups[item.zone_id]) {
+        zoneGroups[item.zone_id] = {
+          zone_id: item.zone_id,
+          gross_salary: 0,
+          deductions: 0,
+          net_salary: 0
+        };
+      }
+      zoneGroups[item.zone_id].gross_salary += parseFloat(item.gross_salary);
+      zoneGroups[item.zone_id].deductions += parseFloat(item.deductions);
+      zoneGroups[item.zone_id].net_salary += parseFloat(item.net_salary);
+    });
+    
+    const zones = Object.values(zoneGroups).sort((a, b) => a.zone_id - b.zone_id);
+    
+    // const labels = zones.map(zone => `Zone ${zone.zone_id}`);
+    const labels = zones.map(zone => getZoneName(zone.zone_id));
+    const grossData = zones.map(zone => zone.gross_salary);
+    const deductionsData = zones.map(zone => zone.deductions);
+    const netData = zones.map(zone => zone.net_salary);
+    
+    zoneComparisonChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Gross Salary',
+            data: grossData,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#10b981',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          },
+          {
+            label: 'Deductions',
+            data: deductionsData,
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#ef4444',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 6,
+            pointHoverRadius: 8
+          },
+          {
+            label: 'Net Salary',
+            data: netData,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.1)',
+            borderWidth: 4,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#2563eb',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 8,
+            pointHoverRadius: 10
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          intersect: false,
+          mode: 'index'
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            borderColor: 'rgba(148, 163, 184, 0.3)',
+            borderWidth: 1,
+            cornerRadius: 12,
+            padding: 16,
+            titleFont: { family: 'Poppins', size: 14, weight: '600' },
+            bodyFont: { family: 'Poppins', size: 12, weight: '500' },
+            callbacks: {
+              title: function(tooltipItems) {
+              return tooltipItems[0].label + ' - ' + currentStaffType;
+            },
+              label: function(context) {
+                const value = context.parsed.y;
+                return `${context.dataset.label}: ₨${value.toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: true, color: 'rgba(148, 163, 184, 0.08)' },
+            ticks: { 
+              font: { family: 'Poppins', size: 11, weight: '500' },
+              color: '#64748b'
+            }
+          },
+          y: {
+            grid: { color: 'rgba(148, 163, 184, 0.1)', borderDash: [3, 3] },
+            ticks: {
+              font: { family: 'Poppins', size: 10, weight: '500' },
+              color: '#64748b',
+              callback: function(value) {
+                if (value >= 1000000) return '₨' + (value / 1000000).toFixed(1) + 'M';
+                if (value >= 1000) return '₨' + (value / 1000).toFixed(0) + 'K';
+                return '₨' + value.toLocaleString();
+              }
+            }
+          }
+        },
+        animation: {
+          duration: 2000,
+          easing: 'easeInOutQuart'
+        },
+        onClick: function(event, elements) {
+          if (elements.length > 0) {
+            const zoneIndex = elements[0].index;
+            const zoneId = zones[zoneIndex].zone_id;
+            showZoneData(zoneId);
+          }
+        }
+      }
+    });
+  }
+  
+  function initializeStaffTypeTabs() {
+    const tabs = document.querySelectorAll('.staff-tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        // Remove active class from all tabs
+        tabs.forEach(t => t.classList.remove('active'));
+        
+        // Add active class to clicked tab
+        this.classList.add('active');
+        
+        // Update chart with new staff type data
+        initializeZoneComparisonChart();
+        
+        // Update table visibility
+        updateTableVisibility(this.dataset.staff);
+      });
+    });
+  }
+  
+  function updateTableVisibility(staffType) {
+    const rows = document.querySelectorAll('.zone-row');
+    rows.forEach(row => {
+      const rowStaffType = row.dataset.staff;
+      if (rowStaffType === staffType) {
+        row.style.display = 'table-row';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  }
+  
+  function showAllZones() {
+    // Update active button
+    document.querySelectorAll('.chart-control-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Hide individual zone trend chart
+    document.getElementById('zoneTrendWrapper').style.display = 'none';
+    
+    // Show comparison chart
+    document.querySelector('.zone-chart-wrapper').style.display = 'block';
+    
+    // Refresh comparison chart
+    initializeZoneComparisonChart();
+  }
+  
+  function showZoneData(zoneId) {
+    // Update active button
+    document.querySelectorAll('.chart-control-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    // Show individual zone trend
+    showZoneTrend(zoneId);
+  }
+  
+  function showZoneTrend(zoneId) {
+    const trendWrapper = document.getElementById('zoneTrendWrapper');
+    const trendTitle = document.getElementById('zoneTrendTitle');
+    const ctx = document.getElementById('zoneTrendChart');
+    
+    if (!zoneTrendData || !zoneTrendData[zoneId]) {
+      console.log(`No trend data available for zone ${zoneId}`);
+      return;
+    }
+    
+    // Update title
+    // trendTitle.textContent = `Zone ${zoneId} - Historical Trend For Last 3 Months`;
+    trendTitle.textContent = `${getZoneName(zoneId)} - Historical Trend For Last 3 Months`;
+
+    // Show trend wrapper
+    trendWrapper.style.display = 'block';
+    document.querySelector('.zone-chart-wrapper').style.display = 'none';
+    
+    // Destroy existing trend chart
+    if (zoneTrendChart) {
+      zoneTrendChart.destroy();
+    }
+    
+    // Prepare trend data
+    const trendData = zoneTrendData[zoneId];
+    const periods = trendData.map(item => `Period ${item.period}`);
+    const grossTrend = trendData.map(item => parseFloat(item.gross_salary));
+    const deductionsTrend = trendData.map(item => parseFloat(item.deductions));
+    const netTrend = trendData.map(item => parseFloat(item.net_salary));
+    
+    // Create trend chart
+    zoneTrendChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: periods,
+        datasets: [
+          {
+            label: 'Gross Salary Trend',
+            data: grossTrend,
+            borderColor: '#10b981',
+            backgroundColor: 'rgba(16, 185, 129, 0.2)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'Deductions Trend',
+            data: deductionsTrend,
+            borderColor: '#ef4444',
+            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            borderWidth: 3,
+            fill: true,
+            tension: 0.3
+          },
+          {
+            label: 'Net Salary Trend',
+            data: netTrend,
+            borderColor: '#2563eb',
+            backgroundColor: 'rgba(37, 99, 235, 0.2)',
+            borderWidth: 4,
+            fill: true,
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: 'rgba(15, 23, 42, 0.95)',
+            titleColor: '#ffffff',
+            bodyColor: '#ffffff',
+            callbacks: {
+              title: function(tooltipItems) {
+                //return `Zone ${zoneId} - ${tooltipItems[0].label}`;
+                return `${getZoneName(zoneId)} - ${tooltipItems[0].label}`;
+              },
+              label: function(context) {
+                const value = context.parsed.y;
+                return `${context.dataset.label}: ₨${value.toLocaleString()}`;
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: true, color: 'rgba(148, 163, 184, 0.08)' },
+            ticks: { font: { family: 'Poppins', size: 11 }, color: '#64748b' }
+          },
+          y: {
+            grid: { color: 'rgba(148, 163, 184, 0.1)', borderDash: [3, 3] },
+            ticks: {
+              font: { family: 'Poppins', size: 10 },
+              color: '#64748b',
+              callback: function(value) {
+                if (value >= 1000000) return '₨' + (value / 1000000).toFixed(1) + 'M';
+                if (value >= 1000) return '₨' + (value / 1000).toFixed(0) + 'K';
+                return '₨' + value.toLocaleString();
+              }
+            }
+          }
+        },
+        animation: { duration: 1500, easing: 'easeInOutQuart' }
+      }
+    });
+    
+    // Scroll to trend chart
+    trendWrapper.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  
+  // Initialize when document is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    // Initialize staff type tabs event listeners when DOM is loaded
+    initializeStaffTypeTabs();
+    
+    // Set initial table visibility
+    updateTableVisibility('WSSP-STAFF');
+  });
+  </script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Add loading state initially
+    const cards = document.querySelectorAll('.dashboard-card');
+    cards.forEach(card => card.classList.add('loading'));
+    
+    setTimeout(function() {
+      // Remove loading state
+      cards.forEach(card => card.classList.remove('loading'));
+      
+      // Add count animation
+      document.querySelectorAll('.count-animation').forEach(function(element) {
+        element.classList.add('count-up');
+      });
+      
+      // Optional: Add number counting animation
+      animateNumbers();
+      
+      // Initialize chart
+      initializeSalaryChart();
+    }, 500);
+  });
+
+  function animateNumbers() {
+    const counters = document.querySelectorAll('.count-animation');
+    
+    counters.forEach(counter => {
+      const target = counter.getAttribute('data-target');
+      if (!target || isNaN(target)) return;
+      
+      const targetNum = parseInt(target);
+      const duration = 1500;
+      const increment = targetNum / (duration / 16);
+      let current = 0;
+      
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= targetNum) {
+          current = targetNum;
+          clearInterval(timer);
+        }
+        
+        // Format number with commas for display
+        const displayValue = Math.floor(current).toLocaleString();
+        
+        // Handle currency formatting
+        if (counter.textContent.includes('₨')) {
+          counter.textContent = `₨${displayValue}`;
+        } else {
+          counter.textContent = displayValue;
+        }
+      }, 16);
+    });
+  }
+// Enhanced Salary Trends Chart with Period Comparisons
+function initializeSalaryChart() {
+    console.log('=== ENHANCED CHART INITIALIZATION ===');
+    
+    const ctx = document.getElementById('salaryChart');
+    if (!ctx) {
+        console.error('Canvas element not found!');
+        return;
+    }
+
+    const canvasContext = ctx.getContext('2d');
+    
+    // Get live data from Django template
+    const rawChartData = '{{ chart_data|escapejs }}';
+    console.log('Raw chart data from Django:', rawChartData);
+    
+    let chartData;
+    try {
+        chartData = JSON.parse(rawChartData);
+        console.log('Parsed chart data:', chartData);
+        
+        if (!chartData || !Array.isArray(chartData) || chartData.length === 0) {
+            console.log('No valid chart data available');
+            showNoDataMessage(canvasContext, ctx);
+            return;
+        }
+    } catch (error) {
+        console.error('JSON parse error:', error);
+        showNoDataMessage(canvasContext, ctx);
+        return;
+    }
+
+    // Sort data by period to ensure proper trend line
+    chartData.sort((a, b) => a.period - b.period);
+    
+    // Prepare chart data
+    const labels = chartData.map(item => `Period ${item.period}`);
+    const earnings = chartData.map(item => parseFloat(item.earnings) || 0);
+    const deductions = chartData.map(item => parseFloat(item.deductions) || 0);
+    const netSalary = chartData.map(item => parseFloat(item.net_salary) || 0);
+    const grossSalary = chartData.map(item => parseFloat(item.gross_salary) || 0);
+    
+    console.log('Chart data prepared:', { labels, earnings, deductions, netSalary, grossSalary });
+
+    // Calculate period-over-period differences for tooltips
+    const calculateDifferences = (data) => {
+        return data.map((value, index) => {
+            if (index === 0) return { value, change: 0, changePercent: 0 };
+            const previous = data[index - 1];
+            const change = value - previous;
+            const changePercent = previous !== 0 ? ((change / previous) * 100) : 0;
+            return { value, change, changePercent };
+        });
+    };
+
+    const earningsWithChanges = calculateDifferences(earnings);
+    const deductionsWithChanges = calculateDifferences(deductions);
+    const netSalaryWithChanges = calculateDifferences(netSalary);
+    const grossSalaryWithChanges = calculateDifferences(grossSalary);
+
+    // Create gradient fills
+    const createGradient = (ctx, color1, color2) => {
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, color1);
+        gradient.addColorStop(1, color2);
+        return gradient;
+    };
+
+    const earningsGradient = createGradient(canvasContext, 'rgba(16, 185, 129, 0.3)', 'rgba(16, 185, 129, 0.05)');
+    const deductionsGradient = createGradient(canvasContext, 'rgba(239, 68, 68, 0.3)', 'rgba(239, 68, 68, 0.05)');
+    const netSalaryGradient = createGradient(canvasContext, 'rgba(37, 99, 235, 0.3)', 'rgba(37, 99, 235, 0.05)');
+    const grossSalaryGradient = createGradient(canvasContext, 'rgba(168, 85, 247, 0.3)', 'rgba(168, 85, 247, 0.05)');
+
+    try {
+        const chart = new Chart(canvasContext, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Gross Salary',
+                        data: grossSalary,
+                        borderColor: '#a855f7',
+                        backgroundColor: grossSalaryGradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#a855f7',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+                        pointHoverBackgroundColor: '#9333ea',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 4,
+                        order: 4
+                    },
+                    {
+                        label: 'Total Earnings',
+                        data: earnings,
+                        borderColor: '#10b981',
+                        backgroundColor: earningsGradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#10b981',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+                        pointHoverBackgroundColor: '#059669',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 4,
+                        order: 3
+                    },
+                    {
+                        label: 'Total Deductions',
+                        data: deductions,
+                        borderColor: '#ef4444',
+                        backgroundColor: deductionsGradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#ef4444',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 6,
+                        pointHoverRadius: 9,
+                        pointHoverBackgroundColor: '#dc2626',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 4,
+                        order: 2
+                    },
+                    {
+                        label: 'Net Salary',
+                        data: netSalary,
+                        borderColor: '#2563eb',
+                        backgroundColor: netSalaryGradient,
+                        borderWidth: 4,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#2563eb',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 3,
+                        pointRadius: 8,
+                        pointHoverRadius: 11,
+                        pointHoverBackgroundColor: '#1d4ed8',
+                        pointHoverBorderColor: '#ffffff',
+                        pointHoverBorderWidth: 4,
+                        order: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        titleColor: '#ffffff',
+                        bodyColor: '#ffffff',
+                        borderColor: 'rgba(148, 163, 184, 0.3)',
+                        borderWidth: 1,
+                        cornerRadius: 12,
+                        padding: 16,
+                        titleFont: {
+                            family: 'Poppins',
+                            size: 15,
+                            weight: '600'
+                        },
+                        bodyFont: {
+                            family: 'Poppins',
+                            size: 13,
+                            weight: '500'
+                        },
+                        titleSpacing: 8,
+                        bodySpacing: 6,
+                        footerSpacing: 8,
+                        displayColors: true,
+                        boxWidth: 12,
+                        boxHeight: 12,
+                        boxPadding: 4,
+                        usePointStyle: true,
+                        callbacks: {
+                            title: function(tooltipItems) {
+                                return tooltipItems[0].label;
+                            },
+                            label: function(context) {
+                                const datasetLabel = context.dataset.label;
+                                const value = context.parsed.y;
+                                const index = context.dataIndex;
+                                
+                                let changeData;
+                                switch(datasetLabel) {
+                                    case 'Total Earnings':
+                                        changeData = earningsWithChanges[index];
+                                        break;
+                                    case 'Total Deductions':
+                                        changeData = deductionsWithChanges[index];
+                                        break;
+                                    case 'Net Salary':
+                                        changeData = netSalaryWithChanges[index];
+                                        break;
+                                    case 'Gross Salary':
+                                        changeData = grossSalaryWithChanges[index];
+                                        break;
+                                    default:
+                                        changeData = { change: 0, changePercent: 0 };
+                                }
+                                
+                                const formatChange = (change, percent) => {
+                                    if (index === 0) return '';
+                                    const sign = change >= 0 ? '+' : '';
+                                    const arrow = change >= 0 ? '↗' : '↘';
+                                    const color = change >= 0 ? '📈' : '📉';
+                                    return ` ${arrow} ${sign}₨${Math.abs(change).toLocaleString()} (${sign}${percent.toFixed(1)}%)`;
+                                };
+                                
+                                return `${datasetLabel}: ₨${value.toLocaleString()}${formatChange(changeData.change, changeData.changePercent)}`;
+                            },
+                            footer: function(tooltipItems) {
+                                if (tooltipItems[0].dataIndex === 0) return '';
+                                
+                                const currentIndex = tooltipItems[0].dataIndex;
+                                const currentPeriod = chartData[currentIndex];
+                                const previousPeriod = chartData[currentIndex - 1];
+                                
+                                if (!previousPeriod) return '';
+                                
+                                const netChange = currentPeriod.net_salary - previousPeriod.net_salary;
+                                const netPercent = previousPeriod.net_salary !== 0 ? 
+                                    ((netChange / previousPeriod.net_salary) * 100) : 0;
+                                
+                                const trend = netChange >= 0 ? 
+                                    `🟢 Period Growth: +₨${Math.abs(netChange).toLocaleString()} (+${netPercent.toFixed(1)}%)` : 
+                                    `🔴 Period Decline: -₨${Math.abs(netChange).toLocaleString()} (${netPercent.toFixed(1)}%)`;
+                                
+                                return trend;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: true,
+                            color: 'rgba(148, 163, 184, 0.08)',
+                            lineWidth: 1
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Poppins',
+                                size: 12,
+                                weight: '500'
+                            },
+                            color: '#64748b',
+                            padding: 10
+                        },
+                        border: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(148, 163, 184, 0.1)',
+                            lineWidth: 1,
+                            borderDash: [3, 3]
+                        },
+                        ticks: {
+                            font: {
+                                family: 'Poppins',
+                                size: 11,
+                                weight: '500'
+                            },
+                            color: '#64748b',
+                            padding: 15,
+                            callback: function(value) {
+                                // Format large numbers
+                                if (value >= 1000000) {
+                                    return '₨' + (value / 1000000).toFixed(1) + 'M';
+                                } else if (value >= 1000) {
+                                    return '₨' + (value / 1000).toFixed(0) + 'K';
+                                }
+                                return '₨' + value.toLocaleString();
+                            }
+                        },
+                        border: {
+                            display: false
+                        }
+                    }
+                },
+                animation: {
+                    duration: 2500,
+                    easing: 'easeInOutQuart',
+                    onProgress: function(animation) {
+                        // Add progress indicator
+                        const progress = animation.currentStep / animation.numSteps;
+                        if (progress < 1) {
+                            const progressBar = document.querySelector('.chart-progress');
+                            if (progressBar) {
+                                progressBar.style.width = (progress * 100) + '%';
+                            }
+                        }
+                    },
+                    onComplete: function() {
+                        // Hide progress bar when animation completes
+                        const progressBar = document.querySelector('.chart-progress');
+                        if (progressBar) {
+                            progressBar.style.display = 'none';
+                        }
+                        
+                        // Show period comparison summary
+                        displayPeriodSummary(chartData);
+                    }
+                },
+                elements: {
+                    line: {
+                        borderJoinStyle: 'round',
+                        borderCapStyle: 'round'
+                    },
+                    point: {
+                        hoverBorderWidth: 4,
+                        hitRadius: 8
+                    }
+                }
+            }
+        });
+
+        console.log('Enhanced chart created successfully!');
+
+        // Add scroll-triggered animation
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    chart.update('active');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.3
+        });
+
+        observer.observe(document.querySelector('.chart-container'));
+
+        // Return chart instance for external use
+        return chart;
+
+    } catch (chartError) {
+        console.error('Error creating enhanced chart:', chartError);
+        showErrorMessage(canvasContext, ctx, chartError.message);
+    }
+}
+
+// Helper function to show no data message
+function showNoDataMessage(ctx, canvas) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '18px Poppins';
+    ctx.fillStyle = '#64748b';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    ctx.fillText('📊 No Salary Data Available', centerX, centerY - 20);
+    ctx.font = '14px Poppins';
+    ctx.fillStyle = '#9ca3af';
+    ctx.fillText('Add payroll data to see trends', centerX, centerY + 10);
+}
+
+// Helper function to show error message
+function showErrorMessage(ctx, canvas, error) {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '16px Poppins';
+    ctx.fillStyle = '#ef4444';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    
+    ctx.fillText('⚠️ Chart Loading Error', centerX, centerY - 20);
+    ctx.font = '12px Poppins';
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillText('Check console for details', centerX, centerY + 10);
+}
+
+
+
+// Display period-over-period summary
+function displayPeriodSummary(chartData) {
+    if (chartData.length < 2) return;
+    
+    const latest = chartData[chartData.length - 1];
+    const previous = chartData[chartData.length - 2];
+    
+    const summaryContainer = document.querySelector('.period-summary');
+    if (!summaryContainer) return;
+    
+    const netChange = latest.net_salary - previous.net_salary;
+    const netPercent = previous.net_salary !== 0 ? ((netChange / previous.net_salary) * 100) : 0;
+    
+    const trendIcon = netChange >= 0 ? '📈' : '📉';
+    const trendColor = netChange >= 0 ? '#10b981' : '#ef4444';
+    const trendText = netChange >= 0 ? 'Growth' : 'Decline';
+    
+    summaryContainer.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; padding: 1rem; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-top: 1rem;">
+            <div style="font-size: 2rem;">${trendIcon}</div>
+            <div>
+                <div style="font-weight: 600; color: ${trendColor};">${trendText}: ${netPercent >= 0 ? '+' : ''}${netPercent.toFixed(1)}%</div>
+                <div style="font-size: 0.9rem; color: #64748b;">Period ${previous.period} to ${latest.period}</div>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-weight: 600;">₨${Math.abs(netChange).toLocaleString()}</div>
+                <div style="font-size: 0.9rem; color: #64748b;">Net Change</div>
+            </div>
+        </div>
+    `;
+}
+
+// Initialize chart when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Add progress bar to chart container
+    const chartContainer = document.querySelector('.chart-container');
+    if (chartContainer) {
+        const progressHTML = `
+            <div class="chart-progress-container" style="position: relative; height: 4px; background: #e5e7eb; border-radius: 2px; margin-bottom: 1rem; overflow: hidden;">
+                <div class="chart-progress" style="height: 100%; background: linear-gradient(90deg, #2563eb, #10b981); border-radius: 2px; width: 0%; transition: width 0.3s ease;"></div>
+            </div>
+            <div class="period-summary"></div>
+        `;
+        
+        const chartWrapper = chartContainer.querySelector('.chart-wrapper');
+        if (chartWrapper) {
+            chartWrapper.insertAdjacentHTML('beforebegin', progressHTML);
+        }
+    }
+    
+    // Initialize the enhanced chart
+    setTimeout(() => {
+        initializeSalaryChart();
+    }, 100);
+});
+
+// Export for external use
+window.salaryChart = {
+    initialize: initializeSalaryChart
+};
+
+</script>
+
+<script>
+  function toggleChartSection() {
+    const chartDiv = document.getElementById('chartSection');
+    if (chartDiv.style.display === 'none' || chartDiv.style.display === '') {
+      chartDiv.style.display = 'block';
+      chartDiv.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      chartDiv.style.display = 'none';
+    }
+  }
+</script>
+
+<script>
+  // Zone mapping function
+function getZoneName(zoneId) {
+  const zoneMap = {
+    '1': 'Zone-A',
+    '2': 'Zone-B', 
+    '3': 'Zone-C',
+    '4': 'Zone-D',
+    '5': 'Zone-E',
+    '6': 'HeadOffice'
+  };
+  return zoneMap[zoneId.toString()] || `Zone ${zoneId}`;
+}
+</script>
+
+{% endblock %}
